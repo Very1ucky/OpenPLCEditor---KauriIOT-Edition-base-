@@ -23,12 +23,19 @@ import glob
 class ArduinoUploadDialog(wx.Dialog):
     """Dialog to configure upload parameters"""
 
-    def __init__(self, parent, st_code, md5):
+    def __init__(self, parent, st_code, md5, pous_code, res0_code, program_list, ticktime, debug_vars_list, build_path):
         """
         Constructor
         @param parent: Parent wx.Window of dialog for modal
         @param st_code: Compiled PLC program as ST code.
         """
+        self.build_path = build_path
+        self.pous_code = pous_code
+        self.res0_code = res0_code
+        self.program_list = program_list
+        self.ticktime = ticktime
+        self.debug_vars_list = debug_vars_list
+        
         self.plc_program = st_code
         self.md5 = md5
         self.last_update = 0
@@ -43,8 +50,9 @@ class ArduinoUploadDialog(wx.Dialog):
             wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Transfer Program to PLC", pos = wx.DefaultPosition, size = wx.Size( 700,453 ), style = wx.DEFAULT_DIALOG_STYLE )
         
         # load Hals automatically and initialize the board_type_comboChoices
-        self.loadHals()
+        #self.loadHals()
         board_type_comboChoices = []
+        '''
         for board in self.hals:
             board_name = ""
             if self.hals[board]['version'] == "0":
@@ -53,9 +61,12 @@ class ArduinoUploadDialog(wx.Dialog):
                 board_name = board + ' [' + self.hals[board]['version'] + ']'
 
             board_type_comboChoices.append(board_name)
+        '''
+        board_type_comboChoices.append("Kauri PLC")
         board_type_comboChoices.sort()
+        
 
-        self.SetSizeHintsSz( wx.Size( -1,-1 ), wx.DefaultSize )
+        self.SetSizeHints( minSize = wx.Size(-1, -1), maxSize = wx.Size(-1, -1), incSize = wx.DefaultSize )
 
         bSizer2 = wx.BoxSizer( wx.VERTICAL )
 
@@ -79,7 +90,7 @@ class ArduinoUploadDialog(wx.Dialog):
         self.m_staticText1.Wrap( -1 )
         fgSizer1.Add( self.m_staticText1, 0, wx.ALIGN_CENTER|wx.BOTTOM|wx.LEFT|wx.TOP, 15 )
 
-        self.board_type_combo = wx.ComboBox( self.m_panel5, wx.ID_ANY, u"Arduino Uno", wx.DefaultPosition, wx.Size( 410,-1 ), board_type_comboChoices, 0 )
+        self.board_type_combo = wx.ComboBox( self.m_panel5, wx.ID_ANY, u"Kauri PLC", wx.DefaultPosition, wx.Size( 410,-1 ), board_type_comboChoices, 0 )
         fgSizer1.Add( self.board_type_combo, 0, wx.ALIGN_CENTER|wx.BOTTOM|wx.TOP, 15 )
         self.board_type_combo.Bind(wx.EVT_COMBOBOX, self.onUIChange)
 
@@ -474,16 +485,16 @@ class ArduinoUploadDialog(wx.Dialog):
                 self.wifi_pwd_txt.Enable(True)
 
         #Update IOs
-        board_type = self.board_type_combo.GetValue().split(" [")[0] #remove the trailing [version] on board name
-        board_din = self.hals[board_type]['user_din']
-        board_ain = self.hals[board_type]['user_ain']
-        board_dout = self.hals[board_type]['user_dout']
-        board_aout = self.hals[board_type]['user_aout']
+        #board_type = self.board_type_combo.GetValue().split(" [")[0] #remove the trailing [version] on board name
+        #board_din = self.hals[board_type]['user_din']
+        #board_ain = self.hals[board_type]['user_ain']
+        #board_dout = self.hals[board_type]['user_dout']
+        #board_aout = self.hals[board_type]['user_aout']
         
-        self.din_txt.SetValue(str(board_din))
-        self.ain_txt.SetValue(str(board_ain))
-        self.dout_txt.SetValue(str(board_dout))
-        self.aout_txt.SetValue(str(board_aout))
+        #self.din_txt.SetValue(str(board_din))
+        #self.ain_txt.SetValue(str(board_ain))
+        #self.dout_txt.SetValue(str(board_dout))
+        #self.aout_txt.SetValue(str(board_aout))
 
     def restoreIODefaults(self, event):
         board_type = self.board_type_combo.GetValue().split(" [")[0] #remove the trailing [version] on board name
@@ -505,19 +516,19 @@ class ArduinoUploadDialog(wx.Dialog):
     def startBuilder(self):
 
         # Get platform and source_file from hals
-        board_type = self.board_type_combo.GetValue().split(" [")[0] #remove the trailing [version] on board name
-        platform = self.hals[board_type]['platform']
-        source = self.hals[board_type]['source']
+        #board_type = self.board_type_combo.GetValue().split(" [")[0] #remove the trailing [version] on board name
+        #platform = self.hals[board_type]['platform']
+        #source = self.hals[board_type]['source']
         
-        self.generateDefinitionsFile()
+        defs = self.generateDefinitionsFile()
 
         port = "None" #invalid port
         if (self.check_compile.GetValue() == True):
             port = None
         elif self.com_port_combo.GetValue() in self.com_port_combo_choices:
             port = self.com_port_combo_choices[self.com_port_combo.GetValue()]
-        
-        compiler_thread = threading.Thread(target=builder.build, args=(self.plc_program, platform, source, port, self.output_text, self.update_subsystem))
+            
+        compiler_thread = threading.Thread(target=builder.build, args=(defs, self.plc_program, self.pous_code, self.res0_code, self.program_list, self.debug_vars_list, port, self.output_text, self.update_subsystem, self.build_path))
         compiler_thread.start()
         compiler_thread.join()
         wx.CallAfter(self.upload_button.Enable, True)   
@@ -526,13 +537,32 @@ class ArduinoUploadDialog(wx.Dialog):
             self.last_update = time.time()
         self.saveSettings()
 
-
     def OnUpload(self, event):
         self.upload_button.Enable(False)
         builder_thread = threading.Thread(target=self.startBuilder)
         builder_thread.start()
     
-    def generateDefinitionsFile(self):
+    def generateDefinitionsFile(self) -> dict:
+        
+        defs_dict = {"MD5": self.md5, 
+                     "MODBUS_SERIAL": {"ENABLED": self.check_modbus_serial.GetValue(), 
+                                       "BAUD_RATE": str(self.baud_rate_combo.GetValue()),
+                                       "SLAVE_ID": str(self.slaveid_txt.GetValue())}, 
+                     "MODBUS_TCP": {"ENABLED": self.check_modbus_tcp.GetValue(),
+                                    "MAC": str(self.mac_txt.GetValue()),
+                                    "IP": str(self.ip_txt.GetValue()),
+                                    "DNS": str(self.dns_txt.GetValue()),
+                                    "GATEWAY": str(self.gateway_txt.GetValue()),
+                                    "SUBNET": str(self.subnet_txt.GetValue()),
+                                    "SSID": str(self.wifi_ssid_txt.GetValue()),
+                                    "PWD": str(self.wifi_pwd_txt.GetValue())},
+                     "TICKTIME": self.ticktime}
+        
+        
+        
+        
+        
+        return defs_dict
         #Store program MD5 on target
         define_file = '//Program MD5\n'
         define_file += '#define PROGRAM_MD5 "' + str(self.md5) + '"\n'
@@ -576,7 +606,7 @@ class ArduinoUploadDialog(wx.Dialog):
         define_file += '#define NUM_ANALOG_INPUT ' + str(len(str(self.ain_txt.GetValue()).split(','))) + '\n'
         define_file += '#define NUM_DISCRETE_OUTPUT ' + str(len(str(self.dout_txt.GetValue()).split(','))) + '\n'
         define_file += '#define NUM_ANALOG_OUTPUT ' + str(len(str(self.aout_txt.GetValue()).split(','))) + '\n'
-        
+        '''
         # Get define from hals
         board_type = self.board_type_combo.GetValue().split(" [")[0]
         if 'define' in self.hals[board_type]:
@@ -601,7 +631,7 @@ class ArduinoUploadDialog(wx.Dialog):
             define_file += '#define USE_ARDUINOCAN_BLOCK\n'
         if (self.plc_program.find('ARDUINOCAN_READ;') > 0):
             define_file += '#define USE_ARDUINOCAN_BLOCK\n'
-
+        '''
         #Write file to disk
         if platform.system() == 'Windows':
             base_path = 'editor\\arduino\\examples\\Baremetal\\'
