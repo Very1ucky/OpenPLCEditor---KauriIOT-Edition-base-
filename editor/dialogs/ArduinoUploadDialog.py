@@ -523,12 +523,13 @@ class ArduinoUploadDialog(wx.Dialog):
         defs = self.generateDefinitionsFile()
 
         port = "None" #invalid port
-        if (self.check_compile.GetValue() == True):
+        if self.check_compile.GetValue() is True:
             port = None
         elif self.com_port_combo.GetValue() in self.com_port_combo_choices:
             port = self.com_port_combo_choices[self.com_port_combo.GetValue()]
-            
-        compiler_thread = threading.Thread(target=builder.build, args=(defs, self.plc_program, self.pous_code, self.res0_code, self.program_list, self.debug_vars_list, port, self.output_text, self.update_subsystem, self.build_path))
+        
+        plc_parser = builder.PlcProgramParser()
+        compiler_thread = threading.Thread(target=plc_parser.build, args=(defs, self.plc_program, self.pous_code, self.res0_code, self.program_list, self.debug_vars_list, port, self.output_text, self.update_subsystem, self.build_path))
         compiler_thread.start()
         compiler_thread.join()
         wx.CallAfter(self.upload_button.Enable, True)   

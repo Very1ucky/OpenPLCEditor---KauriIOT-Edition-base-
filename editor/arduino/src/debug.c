@@ -30,36 +30,44 @@
 uint8_t endianness;
 
 
-extern BLINK RES0__INSTANCE0;
+extern BLINK FDSFDSFDS__INSTANCE0;
 
 static const struct {
     void *ptr;
     __IEC_types_enum type;
 } debug_vars[] = {
-    {&(RES0__INSTANCE0.BLINK_LED), BOOL_ENUM},
-    {&(RES0__INSTANCE0.TON0.EN), BOOL_ENUM},
-    {&(RES0__INSTANCE0.TON0.ENO), BOOL_ENUM},
-    {&(RES0__INSTANCE0.TON0.IN), BOOL_ENUM},
-    {&(RES0__INSTANCE0.TON0.PT), TIME_ENUM},
-    {&(RES0__INSTANCE0.TON0.Q), BOOL_ENUM},
-    {&(RES0__INSTANCE0.TON0.ET), TIME_ENUM},
-    {&(RES0__INSTANCE0.TON0.STATE), SINT_ENUM},
-    {&(RES0__INSTANCE0.TON0.PREV_IN), BOOL_ENUM},
-    {&(RES0__INSTANCE0.TON0.CURRENT_TIME), TIME_ENUM},
-    {&(RES0__INSTANCE0.TON0.START_TIME), TIME_ENUM},
-    {&(RES0__INSTANCE0.TOF0.EN), BOOL_ENUM},
-    {&(RES0__INSTANCE0.TOF0.ENO), BOOL_ENUM},
-    {&(RES0__INSTANCE0.TOF0.IN), BOOL_ENUM},
-    {&(RES0__INSTANCE0.TOF0.PT), TIME_ENUM},
-    {&(RES0__INSTANCE0.TOF0.Q), BOOL_ENUM},
-    {&(RES0__INSTANCE0.TOF0.ET), TIME_ENUM},
-    {&(RES0__INSTANCE0.TOF0.STATE), SINT_ENUM},
-    {&(RES0__INSTANCE0.TOF0.PREV_IN), BOOL_ENUM},
-    {&(RES0__INSTANCE0.TOF0.CURRENT_TIME), TIME_ENUM},
-    {&(RES0__INSTANCE0.TOF0.START_TIME), TIME_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.BLINK_LED), BOOL_O_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.BLINK_LED0), BOOL_O_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TON0.EN), BOOL_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TON0.ENO), BOOL_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TON0.IN), BOOL_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TON0.PT), TIME_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TON0.Q), BOOL_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TON0.ET), TIME_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TON0.STATE), SINT_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TON0.PREV_IN), BOOL_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TON0.CURRENT_TIME), TIME_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TON0.START_TIME), TIME_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF0.EN), BOOL_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF0.ENO), BOOL_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF0.IN), BOOL_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF0.PT), TIME_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF0.Q), BOOL_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF0.ET), TIME_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF0.STATE), SINT_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF0.PREV_IN), BOOL_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF0.CURRENT_TIME), TIME_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF0.START_TIME), TIME_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF1), INT_O_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF2), STRING_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF3), DATE_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF4), REAL_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF5), TIME_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF6), TOD_ENUM},
+    {&(FDSFDSFDS__INSTANCE0.TOF7), DT_ENUM},
 };
 
-#define VAR_COUNT               21
+#define VAR_COUNT               29
 
 uint16_t get_var_count(void)
 {
@@ -69,12 +77,25 @@ uint16_t get_var_count(void)
 size_t get_var_size(size_t idx)
 {
     switch (debug_vars[idx].type) {
+    case STRING_ENUM:
+        return sizeof(STRING);
+    case BOOL_ENUM:
+    case BOOL_O_ENUM:
+        return sizeof(BOOL);
+    case REAL_ENUM:
+        return sizeof(REAL);
     case SINT_ENUM:
         return sizeof(SINT);
+    case DT_ENUM:
+        return sizeof(DT);
+    case DATE_ENUM:
+        return sizeof(DATE);
+    case INT_O_ENUM:
+        return sizeof(INT);
     case TIME_ENUM:
         return sizeof(TIME);
-    case BOOL_ENUM:
-        return sizeof(BOOL);
+    case TOD_ENUM:
+        return sizeof(TOD);
     default:
         return 0;
     }
@@ -85,12 +106,30 @@ void *get_var_addr(size_t idx)
     void *ptr = debug_vars[idx].ptr;
 
     switch (debug_vars[idx].type) {
-    case SINT_ENUM:
-        return (void *)&((__IEC_SINT_t *) ptr)->value;
-    case TIME_ENUM:
-        return (void *)&((__IEC_TIME_t *) ptr)->value;
+    case STRING_ENUM:
+        return (void *)&((__IEC_STRING_t *) ptr)->value;
     case BOOL_ENUM:
         return (void *)&((__IEC_BOOL_t *) ptr)->value;
+    case BOOL_O_ENUM:
+        return (void *)((((__IEC_BOOL_p *) ptr)->flags & __IEC_FORCE_FLAG) 
+                        ? &(((__IEC_BOOL_p *) ptr)->fvalue) 
+                        : ((__IEC_BOOL_p *) ptr)->value);
+    case REAL_ENUM:
+        return (void *)&((__IEC_REAL_t *) ptr)->value;
+    case SINT_ENUM:
+        return (void *)&((__IEC_SINT_t *) ptr)->value;
+    case DT_ENUM:
+        return (void *)&((__IEC_DT_t *) ptr)->value;
+    case DATE_ENUM:
+        return (void *)&((__IEC_DATE_t *) ptr)->value;
+    case INT_O_ENUM:
+        return (void *)((((__IEC_INT_p *) ptr)->flags & __IEC_FORCE_FLAG) 
+                        ? &(((__IEC_INT_p *) ptr)->fvalue) 
+                        : ((__IEC_INT_p *) ptr)->value);
+    case TIME_ENUM:
+        return (void *)&((__IEC_TIME_t *) ptr)->value;
+    case TOD_ENUM:
+        return (void *)&((__IEC_TOD_t *) ptr)->value;
     default:
         return 0;
     }
@@ -103,16 +142,10 @@ void force_var(size_t idx, bool forced, void *val)
     if (forced) {
         size_t var_size = get_var_size(idx);
         switch (debug_vars[idx].type) {
-        case SINT_ENUM: {
-            memcpy(&((__IEC_SINT_t *) ptr)->value, val, var_size);
-            //((__IEC_SINT_t *) ptr)->value = *((SINT *) val);
-            ((__IEC_SINT_t *) ptr)->flags |= __IEC_FORCE_FLAG;
-            break;
-        }
-        case TIME_ENUM: {
-            memcpy(&((__IEC_TIME_t *) ptr)->value, val, var_size);
-            //((__IEC_TIME_t *) ptr)->value = *((TIME *) val);
-            ((__IEC_TIME_t *) ptr)->flags |= __IEC_FORCE_FLAG;
+        case STRING_ENUM: {
+            memcpy(&((__IEC_STRING_t *) ptr)->value, val, var_size);
+            //((__IEC_STRING_t *) ptr)->value = *((STRING *) val);
+            ((__IEC_STRING_t *) ptr)->flags |= __IEC_FORCE_FLAG;
             break;
         }
         case BOOL_ENUM: {
@@ -121,19 +154,88 @@ void force_var(size_t idx, bool forced, void *val)
             ((__IEC_BOOL_t *) ptr)->flags |= __IEC_FORCE_FLAG;
             break;
         }
+        case BOOL_O_ENUM: {
+            memcpy((((__IEC_BOOL_p *) ptr)->value), val, var_size);
+            //*(((__IEC_BOOL_p *) ptr)->value) = *((BOOL *) val);
+            ((__IEC_BOOL_p *) ptr)->flags |= __IEC_FORCE_FLAG;
+            break;
+        }
+        case REAL_ENUM: {
+            memcpy(&((__IEC_REAL_t *) ptr)->value, val, var_size);
+            //((__IEC_REAL_t *) ptr)->value = *((REAL *) val);
+            ((__IEC_REAL_t *) ptr)->flags |= __IEC_FORCE_FLAG;
+            break;
+        }
+        case SINT_ENUM: {
+            memcpy(&((__IEC_SINT_t *) ptr)->value, val, var_size);
+            //((__IEC_SINT_t *) ptr)->value = *((SINT *) val);
+            ((__IEC_SINT_t *) ptr)->flags |= __IEC_FORCE_FLAG;
+            break;
+        }
+        case DT_ENUM: {
+            memcpy(&((__IEC_DT_t *) ptr)->value, val, var_size);
+            //((__IEC_DT_t *) ptr)->value = *((DT *) val);
+            ((__IEC_DT_t *) ptr)->flags |= __IEC_FORCE_FLAG;
+            break;
+        }
+        case DATE_ENUM: {
+            memcpy(&((__IEC_DATE_t *) ptr)->value, val, var_size);
+            //((__IEC_DATE_t *) ptr)->value = *((DATE *) val);
+            ((__IEC_DATE_t *) ptr)->flags |= __IEC_FORCE_FLAG;
+            break;
+        }
+        case INT_O_ENUM: {
+            memcpy((((__IEC_INT_p *) ptr)->value), val, var_size);
+            //*(((__IEC_INT_p *) ptr)->value) = *((INT *) val);
+            ((__IEC_INT_p *) ptr)->flags |= __IEC_FORCE_FLAG;
+            break;
+        }
+        case TIME_ENUM: {
+            memcpy(&((__IEC_TIME_t *) ptr)->value, val, var_size);
+            //((__IEC_TIME_t *) ptr)->value = *((TIME *) val);
+            ((__IEC_TIME_t *) ptr)->flags |= __IEC_FORCE_FLAG;
+            break;
+        }
+        case TOD_ENUM: {
+            memcpy(&((__IEC_TOD_t *) ptr)->value, val, var_size);
+            //((__IEC_TOD_t *) ptr)->value = *((TOD *) val);
+            ((__IEC_TOD_t *) ptr)->flags |= __IEC_FORCE_FLAG;
+            break;
+        }
         default:
             break;
         }
     } else {
         switch (debug_vars[idx].type) {
+        case STRING_ENUM:
+            ((__IEC_STRING_t *) ptr)->flags &= ~__IEC_FORCE_FLAG;
+            break;
+        case BOOL_ENUM:
+            ((__IEC_BOOL_t *) ptr)->flags &= ~__IEC_FORCE_FLAG;
+            break;
+        case BOOL_O_ENUM:
+            ((__IEC_BOOL_p *) ptr)->flags &= ~__IEC_FORCE_FLAG;
+            break;
+        case REAL_ENUM:
+            ((__IEC_REAL_t *) ptr)->flags &= ~__IEC_FORCE_FLAG;
+            break;
         case SINT_ENUM:
             ((__IEC_SINT_t *) ptr)->flags &= ~__IEC_FORCE_FLAG;
+            break;
+        case DT_ENUM:
+            ((__IEC_DT_t *) ptr)->flags &= ~__IEC_FORCE_FLAG;
+            break;
+        case DATE_ENUM:
+            ((__IEC_DATE_t *) ptr)->flags &= ~__IEC_FORCE_FLAG;
+            break;
+        case INT_O_ENUM:
+            ((__IEC_INT_p *) ptr)->flags &= ~__IEC_FORCE_FLAG;
             break;
         case TIME_ENUM:
             ((__IEC_TIME_t *) ptr)->flags &= ~__IEC_FORCE_FLAG;
             break;
-        case BOOL_ENUM:
-            ((__IEC_BOOL_t *) ptr)->flags &= ~__IEC_FORCE_FLAG;
+        case TOD_ENUM:
+            ((__IEC_TOD_t *) ptr)->flags &= ~__IEC_FORCE_FLAG;
             break;
         default:
             break;
