@@ -41,20 +41,19 @@ class PlcProgramParser:
                     "NOT": 1,
                     "AND": 2,
                     "OR": 3,
-                    "IF_ST": 4,
-                    "ELSE_ST": 5,
-                    "IF_END": 6,
-                    "FOR": 7,
-                    "TON": 8,
-                    "TOF": 9,
-                    "R_TRIG": 10,
-                    "F_TRIG": 11,
-                    "CTU": 12,
-                    "CTD": 13}
+                    "IF": 4,
+                    "FOR": 5,
+                    "WHILE": 6,
+                    "TON": 7,
+                    "TOF": 8,
+                    "R_TRIG": 9,
+                    "F_TRIG": 10,
+                    "CTU": 11,
+                    "CTD": 12}
 
     loc_types = {"": 0, "IX": 1, "QX": 2, "IW": 3, "QW": 4}
     
-    statement_dict = {"if": r"((?P<ws> +)if \((?P<exp>.*?)\) \{\n(?P<if_con>.*?)(?:(?P=ws)\} else \{\n(?P<el_con>.*;))?\n(?P=ws)\};)"}
+    statement_dict = {"IF": r"((?P<ws> +)if \((?P<exp>.*?)\) \{\n(?P<if_con>.*?)(?:(?P=ws)\} else \{\n(?P<el_con>.*;))?\n(?P=ws)\};)"}
 
     _temp_var_pos = -1
     _temp_var_max_pos = 0
@@ -286,7 +285,7 @@ class PlcProgramParser:
                     bl_ins_pos = 0
                     bl_vars = []
                     bl_var_pos = 0
-                    if bl_type == "if":
+                    if bl_type == "IF":
                         expr = block["body"][2]
                         true_sec = block["body"][3]
                         false_sec = block["body"][4]
@@ -606,16 +605,8 @@ class PlcProgramParser:
     def extractVarPos(self, com: str, var_type: str, inst: dict) -> tuple:
         var_to_set = self.extractValue(com)
         if var_to_set is not None:
-            var_pos = self._predefined_temp_vars.get(var_to_set)
             is_val = True
-            if var_pos is None:
-                var_pos = len(self._predefined_temp_vars.keys())
-                self._predefined_temp_vars[var_to_set] = {
-                    "number": var_pos,
-                    "type": var_type,
-                }
-            else:
-                var_pos = var_pos["number"]
+            var_pos = self.getPredefinedVarPos(var_to_set, var_type)
         elif com.startswith("__GET") and len(re.findall(r"\w+\(.+?\)", com)) < 2:
             var_to_set = re.search("\(.*->(.*),\)", com)[1]
             var_pos = inst["vars"][var_to_set]["number"]
@@ -631,13 +622,15 @@ class PlcProgramParser:
         return {"var_pos": var_pos, "is_val": is_val} 
     
     def getPredefinedVarPos(self, var_val, var_type):
-        vvar_pos = self._predefined_temp_vars.get(var_val)
+        var_pos = self._predefined_temp_vars.get(var_val)
             
-        if vvar_pos is None:
-            vvar_pos = len(self._predefined_temp_vars.keys())
-            self._predefined_temp_vars[var_val] = {"number": vvar_pos, "type": var_type}
+        if var_pos is None:
+            var_pos = len(self._predefined_temp_vars.keys())
+            self._predefined_temp_vars[var_val] = {"number": var_pos, "type": var_type}
         else:
-            vvar_pos = vvar_pos["number"]
+            var_pos = var_pos["number"]   
+        
+        return var_pos 
         
 
 class ModbusSendClient:
