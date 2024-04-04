@@ -3,7 +3,7 @@ import datetime
 import threading
 import serial.tools.list_ports
 from builtins import str as text
-from arduino import builder
+from kauri_parser import builder
 import util.paths as paths
 
 import wx
@@ -666,9 +666,9 @@ class ArduinoUploadDialog(wx.Dialog):
         #write settings to disk
         jsonStr = json.dumps(settings)
         if platform.system() == 'Windows':
-            base_path = 'editor\\arduino\\examples\\Baremetal\\'
+            base_path = 'editor\\kauri_parser\\'
         else:
-            base_path = 'editor/arduino/examples/Baremetal/'
+            base_path = 'editor/kauri_parser/'
         f = open(base_path+'settings.json', 'w')
         f.write(jsonStr)
         f.flush()
@@ -678,9 +678,9 @@ class ArduinoUploadDialog(wx.Dialog):
     def loadSettings(self):
         #read settings from disk
         if platform.system() == 'Windows':
-            base_path = 'editor\\arduino\\examples\\Baremetal\\'
+            base_path = 'editor\\kauri_parser\\'
         else:
-            base_path = 'editor/arduino/examples/Baremetal/'
+            base_path = 'editor/kauri_parser/'
         if (os.path.exists(base_path+'settings.json')):
             f = open(base_path+'settings.json', 'r')
             jsonStr = f.read()

@@ -1139,16 +1139,12 @@ class ProjectController(ConfigTreeNode, PLCControler):
     
     def generate_embed_plc_debugger(self):
         dvars, externs, enums = self.Generate_plc_debug_cvars()
-        if os_platform.system() == 'Windows':
-            template_path = 'editor\\arduino\\src'
-        else:
-            template_path = 'editor/arduino/src'
         
         base_folder = paths.AbsDir(__file__)
         loader = FileSystemLoader(
-            os.path.join(base_folder, 'arduino', 'src'))
+            os.path.join(base_folder, 'kauri_parser', 'src'))
         template = Environment(loader=loader).get_template('debug.c.j2')
-        cfile = os.path.join(base_folder, 'arduino', 'src', 'debug.c')
+        cfile = os.path.join(base_folder, 'kauri_parser', 'src', 'debug.c')
         with open(cfile, 'w') as f:
             f.write(template.render(
                 debug={
