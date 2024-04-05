@@ -5,7 +5,7 @@ import struct
 import socket
 import serial
 
-import boolean_parser as bp
+import ast
 
 import wx
 
@@ -49,7 +49,14 @@ class PlcProgramParser:
                     "R_TRIG": 9,
                     "F_TRIG": 10,
                     "CTU": 11,
-                    "CTD": 12}
+                    "CTD": 12,
+                    "SUB": 13,
+                    "ADD": 14,
+                    "DIV": 15,
+                    "MULT": 16,
+                    "EQ": 17,
+                    "GT": 18,
+                    "LT": 19}
 
     loc_types = {"": 0, "IX": 1, "QX": 2, "IW": 3, "QW": 4}
     
@@ -77,6 +84,10 @@ class PlcProgramParser:
         global compiler_logs
         compiler_logs = ''   
         
+        self._predefined_temp_vars = dict()
+        self._temp_var_pos = -1
+        self._temp_var_max_pos = 0
+        
         self.txtCtrl = txtCtrl
         
         # output definitions (MD5 hash, modbus info, ticktime)
@@ -87,7 +98,7 @@ class PlcProgramParser:
         
         # extract instances
         instances = self.extractInstances(program_list, debug_vars_list, pous_code)
-        
+        print(instances)
         compiler_logs += "Predefined variables:\n"
         for val, content in self._predefined_temp_vars.items():
             self.outputIntoCompileWindow(f"\t{val}: {content}\n")
@@ -171,16 +182,19 @@ class PlcProgramParser:
          
         if not str_to_search.startswith("_") and not str_to_search[0].isdigit():
             return None
-         
+        # TODO think about it
+        if str_to_search.startswith("__EQ") or str_to_search.startswith("__GT") or str_to_search.startswith("__LT"):
+            return None
+        
         result = ""
 
-        re_search = re.search("__BOOL_LITERAL\((.*?)\)", str_to_search)
+        re_search = re.search(r"__BOOL_LITERAL\((.*?)\)", str_to_search)
 
         if re_search is not None:
             result = re_search[1].lower() in "true"
             return result
 
-        re_search = re.search("__time_to_timespec\((.*?)\)", str_to_search)
+        re_search = re.search(r"__time_to_timespec\((.*?)\)", str_to_search)
 
         if re_search is not None:
             time_parts = list(map(float, re_search[1].replace(" ", "").split(",")))
@@ -193,7 +207,7 @@ class PlcProgramParser:
             )
             return result
 
-        re_search = re.search("__date_to_timespec\((.*?)\)", str_to_search)
+        re_search = re.search(r"__date_to_timespec\((.*?)\)", str_to_search)
 
         if re_search is not None:
             date_parts = list(map(int, re_search[1].replace(" ", "").split(",")))
@@ -201,14 +215,14 @@ class PlcProgramParser:
             result = (dt - datetime.datetime(1970, 1, 1)).total_seconds()
             return result
 
-        re_search = re.search("__tod_to_timespec\((.*?)\)", str_to_search)
+        re_search = re.search(r"__tod_to_timespec\((.*?)\)", str_to_search)
 
         if re_search is not None:
             tod_parts = list(map(float, re_search[1].replace(" ", "").split(",")))
             result = tod_parts[2] * 60 * 60 + tod_parts[1] * 60 + tod_parts[0]
             return result
 
-        re_search = re.search("__dt_to_timespec\((.*?)\)", str_to_search)
+        re_search = re.search(r"__dt_to_timespec\((.*?)\)", str_to_search)
 
         if re_search is not None:
             dt_parts = list(map(int, re_search[1].replace(" ", "").split(",")))
@@ -223,7 +237,7 @@ class PlcProgramParser:
             result = (dt - datetime.datetime(1970, 1, 1)).total_seconds()
             return result
 
-        re_search = re.search('__STRING_LITERAL\(.+,"(.*?)"\)', str_to_search)
+        re_search = re.search(r'__STRING_LITERAL\(.+,"(.*?)"\)', str_to_search)
 
         if re_search is not None:
             result = re_search[1]
@@ -289,10 +303,10 @@ class PlcProgramParser:
                         expr = block["body"][2]
                         true_sec = block["body"][3]
                         false_sec = block["body"][4]
-                        (bl_var_pos, bl_is_val) = self.extractVarPos(expr, "BOOL", inst)
+                        
+                        (bl_var_pos, bl_is_val, bool_acts) = self.extractBoolStrActs(expr, inst)
+                        actions += bool_acts
                         bl_vars.append(self.getVarDict(bl_var_pos, bl_is_val))
-                        if bl_var_pos < 0:
-                            actions += self.extractBoolStrActs(expr, bl_var_pos, inst)
                         
                         bl_ins_pos = len(actions)
                         
@@ -313,15 +327,15 @@ class PlcProgramParser:
         actions = list()
         for com in block.split(";"):
             stripped_com = com.strip().replace('\n', '')
-            self._command_list = [{"com": stripped_com, "pushEnd": True, "var_pos": 0}]
+            command_list = [{"com": stripped_com, "pushEnd": True}]
             act_type = ""
             act_vars = []
             act_var_pos = 0
             self._temp_var_pos = -1
-            while len(self._command_list) > 0:
-                command = self._command_list.pop()
+            while len(command_list) > 0:
+                command = command_list.pop()
                 if command["pushEnd"]:
-                    not_end_push_pos = len(actions) - 1
+                    not_end_push_pos = len(actions)
                 
                 str_com_text = command["com"]
                 if str_com_text.startswith("__SET_VAR(") or str_com_text.startswith("__SET_LOCATED("):
@@ -335,15 +349,23 @@ class PlcProgramParser:
                     act_is_val = True
                     
                     var_to_set_com = com_args[4]
-                    (act_var_var_pos, act_is_val) = self.extractVarPos(var_to_set_com, var["type"], inst)
-                    act_vars.append(self.getVarDict(act_var_var_pos, act_is_val))
-                    if act_var_var_pos < 0:
-                        if var["type"] == 'BOOL':
-                            bool_acts = self.extractBoolStrActs(var_to_set_com, act_var_var_pos, inst)
-                            for bool_act in reversed(bool_acts):
-                                actions.insert(not_end_push_pos, bool_act)
-                        else:
-                            self._command_list.append({"com": var_to_set_com.strip().replace("\n", ""), "pushEnd": False, "var_pos": act_var_var_pos})
+                    if var["type"] == "BOOL":
+                        (act_var_var_pos, act_is_val, bool_acts) = self.extractBoolStrActs(var_to_set_com, inst)
+                        act_vars.append(self.getVarDict(act_var_var_pos, act_is_val))
+                        for bool_act in reversed(bool_acts):
+                            actions.insert(not_end_push_pos, bool_act)
+                    elif var["type"] != "STRING":
+                        (act_var_var_pos, act_is_val, math_acts) = self.extractMathStrActs(var_to_set_com, var["type"], inst)
+                        act_vars.append(self.getVarDict(act_var_var_pos, act_is_val))
+                        for math_act in reversed(math_acts):
+                            actions.insert(not_end_push_pos, math_act)
+                # TODO write boddies of comparison functions
+                elif str_com_text.startswith("__EQ"):
+                    act_type = "EQ"
+                elif str_com_text.startswith("__GT"):
+                    act_type = "GT"
+                elif str_com_text.startswith("__LT"):
+                    act_type = "LT"
                 elif "_body__" in str_com_text:
                     act_type = str_com_text.split('_')[0]
                     var_to_set = re.search("\(.*->(.*)\)", str_com_text)[1]
@@ -429,8 +451,8 @@ class PlcProgramParser:
         # total vars mc size and count
         (varsSize, varsCount) = self.getInstsVarsSizeAndCount(instances)
         
-        for val, content in self._predefined_temp_vars.items():
-            varsSize += self.getTypeMaxSize(content["type"])
+        for (val, var_type), content in self._predefined_temp_vars.items():
+            varsSize += self.getTypeMaxSize(var_type)
         
         header_bytes += struct.pack('<II', varsSize, varsCount)
         # temp vars count
@@ -448,10 +470,12 @@ class PlcProgramParser:
         header_bytes += struct.pack("<?", defs["MODBUS_TCP"]["ENABLED"])
         
         predefined_vars_bytes = struct.pack("<I", len(self._predefined_temp_vars.keys()))
-        for val, content in self._predefined_temp_vars.items():
-            (var_len, pack_str) = self.getVarLenAndPackStr(content["type"], False, val)
-            type_info = self.var_type_dict[content["type"]]
+        for (val, pred_var_type), content in self._predefined_temp_vars.items():
+            (var_len, pack_str) = self.getVarLenAndPackStr(pred_var_type, False, val)
+            type_info = self.var_type_dict[pred_var_type]
             var_type = type_info["pos"]
+            if pred_var_type == "STRING":
+                val = bytes(val, 'utf-8')
             predefined_vars_bytes += struct.pack("<BH"+pack_str, var_type, var_len, val)
         
         instances_bytes = bytes()
@@ -564,36 +588,136 @@ class PlcProgramParser:
             
         return (length, pack_str)
 
-    def extractBoolStrActs(self, str_to_parse: str, var_pos, inst: dict) -> list:
+    def extractBoolStrActs(self, str_to_parse: str, inst: dict) -> tuple:
+        
+        actions = list() 
+        command_list = list()
+        (var_pos, is_val) = self.extractVarPos(str_to_parse, "BOOL", inst)
+
+        if var_pos >= 0:
+            return (var_pos, is_val, actions)
+        
         res = re.findall(r'(\w+[^\&\|\!]*)', str_to_parse)
+        str_to_parse = str_to_parse[:len(str_to_parse)-str_to_parse.count(')') + str_to_parse.count('(')]
         str_to_parse = str_to_parse.replace("&&", "and").replace("||", "or").replace("!", "not ")
         acts = dict()
         act_pos = 0
         for r in res:
             r = r.strip()
             r = r[:len(r)-r.count(')') + r.count('(')]
-            str_to_parse = str_to_parse.replace(r, f'True={act_pos}', 1)
-            acts[act_pos] = r
+            str_to_parse = str_to_parse.replace(r, f'x{act_pos}', 1)
+            acts[f'x{act_pos}'] = self.transformComparisonStr(r)
             act_pos += 1
-        parse_res = bp.parse(str_to_parse)
-        actions = list()
+        parse_res = ast.parse(str_to_parse, "", "eval").body
+        
         conds = [{"pos": var_pos, "cond": parse_res}]
+        op_to_str = {ast.Or: "OR", ast.And: "AND", ast.Not: "NOT"}
         while (len(conds) > 0):
             cond = conds.pop()
-            if type(cond["cond"]) in (bp.parsers.sqla.SQLAOr, bp.parsers.sqla.SQLAAnd, bp.parsers.sqla.SQLANot):
-                actions.insert(0, {"act_type": cond["cond"].logicop.upper(), "vars": [self.getVarDict(cond["pos"], True)]})
+            if type(cond["cond"]) in (ast.BoolOp, ast.UnaryOp):
+                actions.insert(0, {"act_type": op_to_str[type(cond["cond"].op)], "vars": [self.getVarDict(cond["pos"], False)]})
                 action = actions[0]
-                for c in cond["cond"].conditions:
-                    if type(c) == bp.parsers.sqla.SQLACondition:
-                        (vp, is_val) = self.extractVarPos(acts[int(c.value)], "BOOL", inst)
+                
+                if type(cond["cond"]) == ast.BoolOp:
+                    values = cond["cond"].values
+                else:
+                    values = [cond["cond"].operand]
+                    
+                for c in values:
+                    if type(c) == ast.Name:
+                        (vp, is_val) = self.extractVarPos(acts[c.id], "BOOL", inst)
                         if vp < 0:
-                            self._command_list.insert(0, {"com": acts[int(c.value)], "pushEnd": False, "var_pos": vp})
+                            command_list.append({"com": acts[c.id], "pushEnd": False, "var_pos": vp})
                     else:
                         vp = self.getNextTempVar()
                         is_val = False
                         conds.append({"pos": vp, "cond": c})
                     action["vars"].append(self.getVarDict(vp, is_val))
-        return actions
+            elif type(cond["cond"]) == ast.Name:
+                (var_pos, is_val) = self.extractVarPos(acts[c.id], "BOOL", inst)
+                if var_pos < 0:
+                    command_list.append({"com": acts[c.id], "pushEnd": False, "var_pos": vp})
+
+        for command in command_list:
+            com_acts = self.extractActionsFromBlock(command["com"], inst)
+            com_acts[-1]["vars"].insert(0, self.getVarDict(command["var_pos"], False))
+            for com_act in reversed(com_acts):
+                actions.insert(0, com_act)
+            
+        return (var_pos, is_val, actions)
+    
+    def transformComparisonStr(self, src: str) -> str:
+        ret = ""
+        
+        if " > " in src:
+            res = re.search(r"(.*?) > (.*)", src)
+            ret = f"__GT({res[1]}, {res[2]})"
+        elif " < " in src:
+            res = re.search("(.*?) < (.*?)", src)
+            ret = f"__LT({res[1]}, {res[2]})"  
+        elif " = " in src:
+            res = re.search("(.*?) = (.*?)", src)
+            ret = f"__EQ({res[1]}, {res[2]})"
+        elif src.startswith(("GT", "LT", "EQ")):
+            res = re.search(r"\(.*?, .*?, .*?, (.*?), (.*)\)", src)
+            ret = f"__{src[:2]}({res[1]}, {res[2]})"
+        else:
+            ret = src
+        print(ret)  
+        return ret
+    
+    def extractMathStrActs(self, str_to_parse: str, var_type: str, inst: dict) -> tuple:
+        
+        actions = list() 
+        command_list = list()
+        (var_pos, is_val) = self.extractVarPos(str_to_parse, var_type, inst)
+
+        if var_pos >= 0:
+            return (var_pos, is_val, actions)
+        
+        res = re.findall(r'(\w+[^\/\*\+\-]*)', str_to_parse)
+        str_to_parse = str_to_parse[:len(str_to_parse)-str_to_parse.count(')') + str_to_parse.count('(')]
+        acts = dict()
+        act_pos = 0
+        for r in res:
+            r = r.strip()
+            r = r[:len(r)-r.count(')') + r.count('(')]
+            str_to_parse = str_to_parse.replace(r, f'x{act_pos}', 1)
+            acts[f'x{act_pos}'] = r
+            act_pos += 1
+        parse_res = ast.parse(str_to_parse, "", "eval").body
+        
+        conds = [{"pos": var_pos, "cond": parse_res}]
+        op_to_str = {ast.Sub: "SUB", ast.Add: "ADD", ast.Div: "DIV", ast.Mult: "MULT"}
+        while (len(conds) > 0):
+            cond = conds.pop()
+            if type(cond["cond"]) == ast.BinOp:
+                actions.insert(0, {"act_type": op_to_str[type(cond["cond"].op)], "vars": [self.getVarDict(cond["pos"], False)]})
+                action = actions[0]
+                
+                values = [cond["cond"].left, cond["cond"].right]
+                    
+                for c in values:
+                    if type(c) == ast.Name:
+                        (vp, is_val) = self.extractVarPos(acts[c.id], var_type, inst)
+                        if vp < 0:
+                            command_list.append({"com": acts[c.id], "pushEnd": False, "var_pos": vp})
+                    else:
+                        vp = self.getNextTempVar()
+                        is_val = False
+                        conds.append({"pos": vp, "cond": c})
+                    action["vars"].append(self.getVarDict(vp, is_val))
+            elif type(cond["cond"]) == ast.Name:
+                (var_pos, is_val) = self.extractVarPos(acts[c.id], var_type, inst)
+                if var_pos < 0:
+                    command_list.append({"com": acts[c.id], "pushEnd": False, "var_pos": vp})
+
+        for command in command_list:
+            com_acts = self.extractActionsFromBlock(command["com"])
+            for com_act in com_acts.reversed():
+                actions.insert(0, com_act)
+            
+        return (var_pos, is_val, actions)
            
     def getNextTempVar(self) -> int:
         res = self._temp_var_pos       
@@ -622,11 +746,12 @@ class PlcProgramParser:
         return {"var_pos": var_pos, "is_val": is_val} 
     
     def getPredefinedVarPos(self, var_val, var_type):
-        var_pos = self._predefined_temp_vars.get(var_val)
+        var_pos = self._predefined_temp_vars.get((var_val, var_type))
+        
             
         if var_pos is None:
             var_pos = len(self._predefined_temp_vars.keys())
-            self._predefined_temp_vars[var_val] = {"number": var_pos, "type": var_type}
+            self._predefined_temp_vars[(var_val, var_type)] = {"number": var_pos}
         else:
             var_pos = var_pos["number"]   
         
