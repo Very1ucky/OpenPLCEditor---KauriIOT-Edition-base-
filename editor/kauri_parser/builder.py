@@ -14,6 +14,8 @@ import datetime
 
 
 
+
+
 class PlcProgramParser:
 
     var_type_dict = {"BOOL": {"pos": 0, "size": 1, "str_char": '?'}, 
@@ -98,7 +100,6 @@ class PlcProgramParser:
         
         # extract instances
         instances = self.extractInstances(program_list, debug_vars_list, pous_code)
-        print(instances)
         compiler_logs += "Predefined variables:\n"
         for val, content in self._predefined_temp_vars.items():
             self.outputIntoCompileWindow(f"\t{val}: {content}\n")
@@ -147,10 +148,10 @@ class PlcProgramParser:
         var_number = 0
         for var in debug_vars_list:
             temp = var['C_path'].partition('.')
-            init_value = ''
+            init_value = None
             if temp[2].endswith(".EN") or temp[2].endswith(".ENO"):
                 init_value = True
-            var_dict = {"number": var_number, "type": var["type"], "location": '', "init_value": init_value}
+            var_dict = {"number": var_number, "type": var["type"], "location": None, "init_value": init_value}
             instances[temp[0]]["vars"][temp[2]] = var_dict
             var_number += 1
         # parse POUS.c file to get vars init values, locations and instances actions
@@ -176,14 +177,15 @@ class PlcProgramParser:
                 var["location"] = parts[1][2:].replace('_', ".")
             elif com.startswith("__INIT_LOCATED_VALUE(") or com.startswith("__INIT_VAR("):
                 var = inst["vars"][parts[0].split("->")[1]]
-                var["init_value"] = self.extractValue(com) 
+                var["init_value"] = self.extractValue(com[com.index(",")+1:]) 
+                if var["init_value"] is not None and (var["init_value"] == 0 or var["init_value"] == ''):
+                    var["init_value"] = None
+      
+      
            
     def extractValue(self, str_to_search: str):
          
-        if not str_to_search.startswith("_") and not str_to_search[0].isdigit():
-            return None
-        # TODO think about it
-        if str_to_search.startswith("__EQ") or str_to_search.startswith("__GT") or str_to_search.startswith("__LT"):
+        if not(str_to_search.startswith(("__BOOL_LITERAL", "__time_to_timespec", "__date_to_timespec", "__tod_to_timespec", "__dt_to_timespec", "__STRING_LITERAL")) or str_to_search[0].isdigit()):
             return None
         
         result = ""
@@ -323,16 +325,16 @@ class PlcProgramParser:
                     actions.insert(bl_ins_pos, {"act_type": bl_type, "vars": bl_vars})
         return actions  
             
-    def extractActionsFromBlock(self, block: str, inst: dict) -> list:
+    def extractActionsFromBlock(self, block: str, inst: dict, var_pos:int=None) -> list:
         actions = list()
         for com in block.split(";"):
             stripped_com = com.strip().replace('\n', '')
-            command_list = [{"com": stripped_com, "pushEnd": True}]
-            act_type = ""
-            act_vars = []
-            act_var_pos = 0
+            command_list = [{"com": stripped_com, "pushEnd": True}] 
             self._temp_var_pos = -1
             while len(command_list) > 0:
+                act_type = ""
+                act_vars = []
+                act_var_pos = 0
                 command = command_list.pop()
                 if command["pushEnd"]:
                     not_end_push_pos = len(actions)
@@ -359,13 +361,16 @@ class PlcProgramParser:
                         act_vars.append(self.getVarDict(act_var_var_pos, act_is_val))
                         for math_act in reversed(math_acts):
                             actions.insert(not_end_push_pos, math_act)
-                # TODO write boddies of comparison functions
-                elif str_com_text.startswith("__EQ"):
-                    act_type = "EQ"
-                elif str_com_text.startswith("__GT"):
-                    act_type = "GT"
-                elif str_com_text.startswith("__LT"):
-                    act_type = "LT"
+                elif str_com_text.startswith(("__EQ", "__GT", "__LT")):
+                    act_type = block[2:4]
+                    if var_pos is not None and var_pos < 0:
+                        act_vars.append(self.getVarDict(var_pos, False))
+                        
+                    res = re.search(r"\((.*?), (.*)\)", block)
+                    res = [res[1], res[2]]
+                    for var in res:
+                        (vp, iv) = self.extractVarData(var, "BOOL", inst)
+                        act_vars.append(self.getVarDict(vp, iv))
                 elif "_body__" in str_com_text:
                     act_type = str_com_text.split('_')[0]
                     var_to_set = re.search("\(.*->(.*)\)", str_com_text)[1]
@@ -401,9 +406,9 @@ class PlcProgramParser:
         
         for inst in instances.values():
             for var_name, content in inst["vars"].items():
-                loc_type = content["location"][:2]
-                loc_port_pos_str = content["location"][2:]
-                if loc_type != '':
+                if content["location"] is not None:
+                    loc_type = content["location"][:2]
+                    loc_port_pos_str = content["location"][2:]
                     # TODO check locations format
                     location_parts = list(map(int, loc_port_pos_str.split('.')))
                     if len(location_parts) == 1:
@@ -549,7 +554,7 @@ class PlcProgramParser:
             init_value = content["init_value"]
             
             # TODO think about arrays        
-            if init_value == '':
+            if init_value is None:
                 init_value_length = 0
                 var_bytes += struct.pack("<H", init_value_length)
             else:
@@ -591,8 +596,7 @@ class PlcProgramParser:
     def extractBoolStrActs(self, str_to_parse: str, inst: dict) -> tuple:
         
         actions = list() 
-        command_list = list()
-        (var_pos, is_val) = self.extractVarPos(str_to_parse, "BOOL", inst)
+        (var_pos, is_val) = self.extractVarData(str_to_parse, "BOOL", inst)
 
         if var_pos >= 0:
             return (var_pos, is_val, actions)
@@ -625,24 +629,23 @@ class PlcProgramParser:
                     
                 for c in values:
                     if type(c) == ast.Name:
-                        (vp, is_val) = self.extractVarPos(acts[c.id], "BOOL", inst)
+                        (vp, is_val) = self.extractVarData(acts[c.id], "BOOL", inst)
                         if vp < 0:
-                            command_list.append({"com": acts[c.id], "pushEnd": False, "var_pos": vp})
+                            com_acts = self.extractActionsFromBlock(acts[c.id], inst, vp)
+                            for com_act in reversed(com_acts):
+                                actions.insert(0, com_act)
+                            
                     else:
                         vp = self.getNextTempVar()
                         is_val = False
                         conds.append({"pos": vp, "cond": c})
                     action["vars"].append(self.getVarDict(vp, is_val))
             elif type(cond["cond"]) == ast.Name:
-                (var_pos, is_val) = self.extractVarPos(acts[c.id], "BOOL", inst)
+                (var_pos, is_val) = self.extractVarData(acts[c.id], "BOOL", inst)
                 if var_pos < 0:
-                    command_list.append({"com": acts[c.id], "pushEnd": False, "var_pos": vp})
-
-        for command in command_list:
-            com_acts = self.extractActionsFromBlock(command["com"], inst)
-            com_acts[-1]["vars"].insert(0, self.getVarDict(command["var_pos"], False))
-            for com_act in reversed(com_acts):
-                actions.insert(0, com_act)
+                    com_acts = self.extractActionsFromBlock(acts[c.id], inst, vp)
+                    for com_act in reversed(com_acts):
+                        actions.insert(0, com_act)
             
         return (var_pos, is_val, actions)
     
@@ -669,8 +672,7 @@ class PlcProgramParser:
     def extractMathStrActs(self, str_to_parse: str, var_type: str, inst: dict) -> tuple:
         
         actions = list() 
-        command_list = list()
-        (var_pos, is_val) = self.extractVarPos(str_to_parse, var_type, inst)
+        (var_pos, is_val) = self.extractVarData(str_to_parse, var_type, inst)
 
         if var_pos >= 0:
             return (var_pos, is_val, actions)
@@ -699,23 +701,22 @@ class PlcProgramParser:
                     
                 for c in values:
                     if type(c) == ast.Name:
-                        (vp, is_val) = self.extractVarPos(acts[c.id], var_type, inst)
+                        (vp, is_val) = self.extractVarData(acts[c.id], var_type, inst)
                         if vp < 0:
-                            command_list.append({"com": acts[c.id], "pushEnd": False, "var_pos": vp})
+                            com_acts = self.extractActionsFromBlock(acts[c.id], inst, vp)
+                            for com_act in reversed(com_acts):
+                                actions.insert(0, com_act)
                     else:
                         vp = self.getNextTempVar()
                         is_val = False
                         conds.append({"pos": vp, "cond": c})
                     action["vars"].append(self.getVarDict(vp, is_val))
             elif type(cond["cond"]) == ast.Name:
-                (var_pos, is_val) = self.extractVarPos(acts[c.id], var_type, inst)
+                (var_pos, is_val) = self.extractVarData(acts[c.id], var_type, inst)
                 if var_pos < 0:
-                    command_list.append({"com": acts[c.id], "pushEnd": False, "var_pos": vp})
-
-        for command in command_list:
-            com_acts = self.extractActionsFromBlock(command["com"])
-            for com_act in com_acts.reversed():
-                actions.insert(0, com_act)
+                    com_acts = self.extractActionsFromBlock(acts[c.id], inst, vp)
+                    for com_act in reversed(com_acts):
+                        actions.insert(0, com_act)
             
         return (var_pos, is_val, actions)
            
@@ -726,7 +727,7 @@ class PlcProgramParser:
         
         return res 
     
-    def extractVarPos(self, com: str, var_type: str, inst: dict) -> tuple:
+    def extractVarData(self, com: str, var_type: str, inst: dict) -> tuple:
         var_to_set = self.extractValue(com)
         if var_to_set is not None:
             is_val = True
@@ -842,9 +843,6 @@ class ModbusSendClient:
             slave_id = self.slave_id
 
             # Construct the Modbus RTU frame without CRC
-            #print("Assembling request with fc {}".format(str(function_code)))
-            #header = 
-            #request = bytes([slave_id, function_code]) + data
             request = struct.pack('>BB', slave_id, function_code) + data
 
 
