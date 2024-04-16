@@ -2233,11 +2233,11 @@ class ProjectController(ConfigTreeNode, PLCControler):
             
             resource_name = re.search("RESOURCE (.*) ON PLC", program)[1]
             f = open(os.path.join(self._getBuildPath(), f"{resource_name}.c"), 'r')
-            res0_file = f.read()
+            resource_file = f.read()
             f.close()
             
             self.generate_embed_plc_debugger()
-            dialog = ArduinoUploadDialog.ArduinoUploadDialog(self.AppFrame, program, MD5, pous_file, res0_file, self._ProgramList, self._Ticktime, self._DbgVariablesList, self._getBuildPath())
+            dialog = ArduinoUploadDialog.ArduinoUploadDialog(self.AppFrame, program, MD5, pous_file, resource_file, resource_name, self._ProgramList, self._Ticktime, self._DbgVariablesList, self._getBuildPath())
             dialog.ShowModal()
 
     def _Repair(self):

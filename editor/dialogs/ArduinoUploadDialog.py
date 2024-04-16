@@ -23,18 +23,19 @@ import glob
 class ArduinoUploadDialog(wx.Dialog):
     """Dialog to configure upload parameters"""
 
-    def __init__(self, parent, st_code, md5, pous_code, res0_code, program_list, ticktime, debug_vars_list, build_path):
-        """
+    def __init__(self, parent, st_code, md5, pous_code, resource_code, resource_name, program_list, ticktime, debug_vars_list, build_path):
+        """ 
         Constructor
         @param parent: Parent wx.Window of dialog for modal
         @param st_code: Compiled PLC program as ST code.
         """
         self.build_path = build_path
         self.pous_code = pous_code
-        self.res0_code = res0_code
+        self.resource_code = resource_code
         self.program_list = program_list
         self.ticktime = ticktime
         self.debug_vars_list = debug_vars_list
+        self.resource_name = resource_name
         
         self.plc_program = st_code
         self.md5 = md5
@@ -529,7 +530,7 @@ class ArduinoUploadDialog(wx.Dialog):
             port = self.com_port_combo_choices[self.com_port_combo.GetValue()]
         
         plc_parser = builder.PlcProgramParser()
-        compiler_thread = threading.Thread(target=plc_parser.build, args=(defs, self.plc_program, self.pous_code, self.res0_code, self.program_list, self.debug_vars_list, port, self.output_text, self.update_subsystem, self.build_path))
+        compiler_thread = threading.Thread(target=plc_parser.build, args=(defs, self.plc_program, self.pous_code, self.resource_code, self.resource_name, self.program_list, self.debug_vars_list, port, self.output_text, self.update_subsystem, self.build_path))
         compiler_thread.start()
         compiler_thread.join()
         wx.CallAfter(self.upload_button.Enable, True)   

@@ -124,7 +124,8 @@ class PlcProgramParser:
         defs,
         st_file,
         pous_code,
-        res0_code,
+        resource_code,
+        resource_name,
         program_list,
         debug_vars_list,
         port,
@@ -162,7 +163,7 @@ class PlcProgramParser:
 
         # extract instances
         (global_vars, instances) = self.extractInstancesAndGlobVars(
-            program_list, debug_vars_list, pous_ast, res0_code
+            program_list, debug_vars_list, pous_ast, resource_code
         )
         compiler_logs += "Predefined variables:\n"
         for val, content in self._predefined_temp_vars.items():
@@ -188,7 +189,7 @@ class PlcProgramParser:
             self.outputIntoCompileWindow("\n")
 
         # extract locations from instances
-        locations = self.extractLocations(instances)
+        locations = self.extractLocations(instances, global_vars)
         # output locations into window output
         compiler_logs += "Locations:\n"
         for loc_name, content in locations.items():
@@ -196,7 +197,7 @@ class PlcProgramParser:
         self.outputIntoCompileWindow("\n")
 
         # extract tasks from c file with resources
-        tasks = self.extractTasks(res0_code)
+        tasks = self.extractTasks(resource_code, resource_name, instances)
         # output tasks into window output
         compiler_logs += "Tasks:\n"
         for task_name, content in tasks.items():
@@ -291,12 +292,15 @@ class PlcProgramParser:
         # extract instances from program_list
         instances = dict()
         global_vars = dict()
+        inst_number = 0
         for prog in program_list:
             instances[prog["C_path"]] = {
+                "number": inst_number,
                 "type": prog["type"],
                 "vars": {},
                 "actions": [],
             }
+            inst_number += 1
         # extract vars from debug_vars_list
         var_number = 0
         for var in debug_vars_list:
@@ -314,11 +318,13 @@ class PlcProgramParser:
                 "type": var["type"],
                 "location": None,
                 "init_value": init_value,
+                "visibility": "LOCAL"
             }
 
             if instances.get(temp[0]) is not None:
                 instances[temp[0]]["vars"][var_name] = var_dict
             else:
+                var_dict["visibility"] = "GLOBAL"
                 var_dict["linked_vars_poses"] = []
                 global_vars[var_name] = var_dict
             var_number += 1
@@ -378,6 +384,7 @@ class PlcProgramParser:
                     global_vars[glob_var_name]["linked_vars_poses"].append(
                         inst_vars[glob_var_name]["number"]
                     )
+                    inst_vars[glob_var_name]["visibility"] = "GLOBAL"
             else:
                 raise SyntaxError()
 
@@ -652,17 +659,28 @@ class PlcProgramParser:
         send_client._send_modbus_request(104, bytes())
         send_client.disconnect()
 
-    def extractLocations(self, instances: dict) -> dict:
+    def extractLocations(self, instances: dict, global_vars: dict) -> dict:
         locations = dict()
         for loc_type in self.loc_types.keys():
             if loc_type != "":
-                locations[loc_type] = {"count": 0, "locations": {}}
+                locations[loc_type] = {}
 
-        for inst in instances.values():
-            for var_name, content in inst["vars"].items():
+        list_of_vars_dicts = list(map(lambda inst: inst["vars"], instances.values()))
+        list_of_vars_dicts.append(global_vars)
+        
+        for vars_dict in list_of_vars_dicts:
+            for var_name, content in vars_dict.items():
+                location = None
                 if content["location"] is not None:
-                    loc_type = content["location"][:2]
-                    loc_port_pos_str = content["location"][2:]
+                    location = content["location"]
+                    var_number = content["number"]
+                elif content["visibility"] == "GLOBAL":
+                    location = global_vars[var_name]["location"]
+                    var_number = global_vars[var_name]["number"]
+                
+                if location is not None:
+                    loc_type = location[:2]
+                    loc_port_pos_str = location[2:]
                     # TODO check locations format
                     location_parts = list(map(int, loc_port_pos_str.split(".")))
                     if len(location_parts) == 1:
@@ -670,24 +688,16 @@ class PlcProgramParser:
                     else:
                         location_pos = location_parts[0] * 8 + location_parts[1]
 
-                    if locations[loc_type]["locations"].get(location_pos) is None:
-                        locations[loc_type]["count"] += 1
-                        locations[loc_type]["locations"][location_pos] = [
-                            content["number"]
-                        ]
-                    else:
-                        locations[loc_type]["locations"][location_pos].append(
-                            content["number"]
-                        )
-
-        for loc_name, content in locations.items():
-            content["locations"] = {
-                key: content["locations"][key] for key in sorted(content["locations"])
+                    locations[loc_type][location_pos] = var_number
+        
+        for loc_type, content in locations.items():
+            locations[loc_type] = {
+                key: content[key] for key in sorted(content.keys())
             }
 
         return locations
 
-    def extractTasks(self, res0_code: str) -> dict:
+    def extractTasks(self, res0_code: str, resource_name: str, instances: dict) -> dict:
         tasks = {}
         tasks_pattern = r"_run__\(unsigned long tick\) \{(.*?)\}\n\n"
         tasks_sec = re.search(tasks_pattern, res0_code, flags=re.S)[1]
@@ -696,11 +706,11 @@ class PlcProgramParser:
         for task_parts in tasks_parts:
             tasks[task_parts[0]] = {"TICK_COUNT": int(task_parts[1]), "INSTANCES": []}
         for task in tasks.keys():
-            tasks_inst_parts = re.findall(
-                rf"if \({task}\) {{.*?\(&INSTANCE(.*?)\).*?}}", tasks_sec, flags=re.S
+            inst_task_names = re.findall(
+                rf"if \({task}\) {{.*?_body__\(&(.*?)\).*?}}", tasks_sec, flags=re.S
             )
-            for task_inst_parts in tasks_inst_parts:
-                tasks[task]["INSTANCES"].append(int(task_inst_parts[0]))
+            for inst_task_name in inst_task_names:
+                tasks[task]["INSTANCES"].append(instances[resource_name.upper()+"__"+inst_task_name]["number"])
 
         return tasks
 
@@ -725,12 +735,9 @@ class PlcProgramParser:
         header_bytes = struct.pack(
             "<H" + str(md5_len) + "s", md5_len, bytes(defs["MD5"], "utf-8")
         )
-        # total vars mc size and count
-        (varsSize, varsCount) = self.getInstsVarsSizeAndCount(instances)
-
-        for (val, var_type), content in self._predefined_temp_vars.items():
-            varsSize += self.getTypeMaxSize(var_type)
-
+        
+        varsSize, varsCount = self.getProgramVarsSizeAndCount(global_vars, instances)
+        
         header_bytes += struct.pack("<II", varsSize, varsCount)
         # temp vars count
         header_bytes += struct.pack("<I", self._temp_var_max_pos)
@@ -766,12 +773,29 @@ class PlcProgramParser:
         # parse global vars
         global_vars_bytes = struct.pack("<I", len(global_vars.keys()))
         for var_name, content in global_vars.items():
-            (var_len, pack_str) = self.getVarLenAndPackStr(content["type"], False, val)
+            
+            var_bytes = bytes()
+            pack_str = "<B"
             type_info = self.var_type_dict[content["type"]]
             var_type = type_info["pos"]
-            if content["type"] == "STRING":
-                val = bytes(val, "utf-8")
-            global_vars_bytes += struct.pack("<BH" + pack_str, var_type, var_len, val)
+
+            var_bytes += struct.pack("<B", var_type)
+
+            init_value = content["init_value"]
+
+            # TODO think about arrays
+            if init_value is None:
+                init_value_length = 0
+                var_bytes += struct.pack("<H", init_value_length)
+            else:
+                (init_value_length, pack_str) = self.getVarLenAndPackStr(
+                    content["type"], False, init_value
+                )
+                if content["type"] == "STRING":
+                    init_value = bytes(init_value, "utf-8")
+                var_bytes += struct.pack("<H" + pack_str, init_value_length, init_value)
+
+            global_vars_bytes += var_bytes
 
             linked_vars_count = len(content["linked_vars_poses"])
             global_vars_bytes += struct.pack("<I", linked_vars_count)
@@ -787,11 +811,9 @@ class PlcProgramParser:
         locations_bytes = bytes()
         for loc_name, content in locations.items():
             loc_type_num = self.loc_types[loc_name]
-            location_bytes = struct.pack("<BI", loc_type_num, content["count"])
-            for pos_in_ports, poses_in_vars in content["locations"].items():
-                location_bytes += struct.pack("<II", pos_in_ports, len(poses_in_vars))
-                for pos_in_vars in poses_in_vars:
-                    location_bytes += struct.pack("<I", pos_in_vars)
+            location_bytes = struct.pack("<BI", loc_type_num, len(content.keys()))
+            for pos_in_ports, pos_in_vars in content.items():
+                location_bytes += struct.pack("<II", pos_in_ports, pos_in_vars)
             locations_bytes += location_bytes
 
         # parse tasks into bytes
@@ -807,10 +829,22 @@ class PlcProgramParser:
 
         f.write(header_bytes)
         f.write(predefined_vars_bytes)
+        f.write(global_vars_bytes)
         f.write(instances_bytes)
         f.write(locations_bytes)
         f.write(tasks_bytes)
         f.close()
+
+    def getProgramVarsSizeAndCount(self, global_vars: dict, instances: dict) -> tuple:
+        (varsSize, varsCount) = self.getInstsVarsSizeAndCount(instances)
+        # add predefined vars size to varsSize
+        for (val, var_type), content in self._predefined_temp_vars.items():
+            varsSize += self.getTypeMaxSize(var_type)
+        # add global vars size to varsSize
+        for var_name, content in global_vars.items():
+            varsSize += self.getTypeMaxSize(content["type"])
+        varsCount += len(global_vars)
+        return varsSize,varsCount
 
     def getInstsVarsSizeAndCount(self, insts: dict) -> tuple:
         # TODO add array support
@@ -821,7 +855,8 @@ class PlcProgramParser:
             vars_count += len(variables.keys())
 
             for var_name, content in variables.items():
-                vars_size += self.getTypeMaxSize(content["type"])
+                if content["visibility"] == "LOCAL":
+                    vars_size += self.getTypeMaxSize(content["type"])
         return (vars_size, vars_count)
 
     def getTypeMaxSize(self, type: str) -> int:
@@ -839,8 +874,9 @@ class PlcProgramParser:
 
         # parse vars into bytes
         for var_name, content in inst["vars"].items():
+            if content["visibility"] == "GLOBAL":
+                continue
             var_bytes = bytes()
-            pack_str = "<B"
             type_info = self.var_type_dict[content["type"]]
             var_type = type_info["pos"]
 
