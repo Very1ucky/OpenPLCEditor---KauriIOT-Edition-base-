@@ -3,6 +3,7 @@ import platform as os_platform
 import time
 import struct
 import socket
+from numpy import isin
 import pycparser.ast_transforms
 import pycparser.c_ast
 import serial
@@ -35,10 +36,10 @@ class PlcProgramParser:
         "TOD": {"pos": 13, "size": 4, "str_char": "f"},
         "DT": {"pos": 14, "size": 4, "str_char": "f"},
         "STRING": {"pos": 15, "size": 1, "str_char": "s"},
-        "BYTE": {"pos": 16, "size": 1, "str_char": "b"},
-        "WORD": {"pos": 17, "size": 2, "str_char": "h"},
-        "DWORD": {"pos": 17, "size": 4, "str_char": "i"},
-        "LWORD": {"pos": 19, "size": 8, "str_char": "q"},
+        "BYTE": {"pos": 16, "size": 1, "str_char": "B"},
+        "WORD": {"pos": 17, "size": 2, "str_char": "H"},
+        "DWORD": {"pos": 17, "size": 4, "str_char": "I"},
+        "LWORD": {"pos": 19, "size": 8, "str_char": "Q"},
     }
 
     act_type_dict = {
@@ -64,6 +65,7 @@ class PlcProgramParser:
         "LT": 19,
         "GE": 20,
         "LE": 21,
+        "NE": 22,
     }
 
     loc_types = {"": 0, "IX": 1, "QX": 2, "IW": 3, "QW": 4}
@@ -79,6 +81,8 @@ class PlcProgramParser:
     _predefined_temp_vars = dict()
     _command_list = list()
 
+    _common_var_type = None
+
     _code_to_op = {
         "GT": ">",
         "LT": "<",
@@ -87,7 +91,7 @@ class PlcProgramParser:
         "EQ": "==",
         "NE": "!=",
         "AND": "&&",
-        "OR_": "||",
+        "OR": "||",
         "XOR": "&&",
     }
     _op_to_code = {
@@ -96,7 +100,7 @@ class PlcProgramParser:
         ">=": "GE",
         "<=": "LE",
         "==": "EQ",
-        "!=": "NEQ",
+        "!=": "NE",
         "&&": "AND",
         "||": "OR",
         "!": "NOT",
@@ -220,12 +224,14 @@ class PlcProgramParser:
         res = re.findall(
             r"((EQ|GT|GE|LT|LE|NE)_.*?\(.*?, .*?, .*?, (.*?), (.*?\)?)\))", pous_code
         )
+        res += re.findall(r"((EQ|GT|GE|LT|LE)_.*?\(\n.*?,\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))", pous_code, flags=re.S)
+        res += re.findall(r"((NE)_.*?\(\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))", pous_code, flags=re.S)
         for r in res:
             op = self._code_to_op[r[1]]
             pous_code = pous_code.replace(r[0], f"{r[2]} {op} {r[3]}")
 
         res = re.findall(
-            r"((AND|OR_|XOR).*?\(\n.*?,\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
+            r"((AND|OR|XOR).*?\(\n.*?,\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
             pous_code,
             flags=re.S,
         )
@@ -318,7 +324,7 @@ class PlcProgramParser:
                 "type": var["type"],
                 "location": None,
                 "init_value": init_value,
-                "visibility": "LOCAL"
+                "visibility": "LOCAL",
             }
 
             if instances.get(temp[0]) is not None:
@@ -424,12 +430,12 @@ class PlcProgramParser:
 
                     bl_vars.append(
                         self.getVarDict(
-                            self.getPredefinedVarPos(len(true_acts), "INT"), True
+                            self.getPredefinedVarPos(len(true_acts), "UINT"), True
                         )
                     )
                     bl_vars.append(
                         self.getVarDict(
-                            self.getPredefinedVarPos(len(false_acts), "INT"), True
+                            self.getPredefinedVarPos(len(false_acts), "UINT"), True
                         )
                     )
 
@@ -453,7 +459,7 @@ class PlcProgramParser:
             act_vars.append(self.getVarDict(var["number"], False))
 
             (act_var_var_pos, act_is_val, acts) = self.extractFuncArgActions(
-                func.args.exprs[1], inst_vars
+                func.args.exprs[1], inst_vars, var["type"]
             )
             act_vars.append(self.getVarDict(act_var_var_pos, act_is_val))
             actions += acts
@@ -466,20 +472,32 @@ class PlcProgramParser:
         actions.append({"act_type": act_type, "vars": act_vars})
 
         return actions
-
-    def extractFuncArgActions(self, exp_to_pars, inst_vars: dict) -> tuple:
+    
+    def extractFuncArgActions(
+        self, exp_to_pars, inst_vars: dict, common_type=None
+    ) -> tuple:
 
         actions = list()
-        (var_pos, is_val) = self.extractVarData(exp_to_pars, inst_vars)
+        (var_pos, is_val, var_type) = self.extractVarData(
+            exp_to_pars, inst_vars, True, common_type
+        )
 
         if var_pos >= 0:
             return (var_pos, is_val, actions)
 
         conds = [{"pos": var_pos, "cond": exp_to_pars}]
+        if self.isDigitType(common_type):
+            conds.insert(0, "Change pred types")
         while len(conds) > 0:
             cond = conds.pop()
+            if type(cond) == str:
+                self.fillNoneTypesOfPredVars(common_type)
+                common_type = None
+                continue
             cond_type = type(cond["cond"])
             if cond_type in (pycparser.c_ast.BinaryOp, pycparser.c_ast.UnaryOp):
+                if cond["cond"].op in ('>', '<', ">=", "<=", "==", "!="):
+                    conds.append("Change pred types")
                 actions.insert(
                     0,
                     {
@@ -500,8 +518,21 @@ class PlcProgramParser:
                     pycparser.c_ast.Constant,
                     pycparser.c_ast.ID,
                     pycparser.c_ast.FuncCall,
-                ):
-                    (vp, iv) = self.extractVarData(c, inst_vars)
+                ) or (type(c) == pycparser.c_ast.UnaryOp and c.op == '-'):
+                    (vp, iv, var_type) = self.extractVarData(c, inst_vars, False)
+                    if not self.isDigitType(var_type):
+                        self.fillNoneTypesOfPredVars(var_type)
+                    if (
+                        common_type is None
+                        or self.var_type_dict[var_type]["size"]
+                        > self.var_type_dict[common_type]["size"]
+                        or (
+                            self.var_type_dict[var_type]["size"]
+                            == self.var_type_dict[common_type]["size"]
+                            and self.isUnsignedType(common_type)
+                        )
+                    ):
+                        common_type = var_type
                     if vp < 0:
                         com_acts = self.extractFuncActions(c, inst_vars, vp)
                         for com_act in reversed(com_acts):
@@ -515,6 +546,20 @@ class PlcProgramParser:
 
         return (var_pos, is_val, actions)
 
+    def isDigitType(self, var_type: str) -> bool:
+        return var_type not in ("BOOL", "STRING")
+    
+    def isUnsignedType(self, var_type: str) -> bool:
+        return var_type in ("USINT", "UINT", "ULINT", "UDINT", "BYTE", "WORD", "LWORD", "DWORD", "BOOL")
+    
+    def fillNoneTypesOfPredVars(self, type_to_fill: str):
+        pred_vars_keys = list(self._predefined_temp_vars.keys())
+        for pred_var_key in pred_vars_keys:
+            if pred_var_key[1] is None:
+                temp = dict(self._predefined_temp_vars.pop(pred_var_key))
+                if self._predefined_temp_vars.get((pred_var_key[0], type_to_fill)) is None:
+                    self._predefined_temp_vars[(pred_var_key[0], type_to_fill)] = temp
+
     def getNextTempVar(self) -> int:
         res = self._temp_var_pos
         self._temp_var_pos -= 1
@@ -522,33 +567,30 @@ class PlcProgramParser:
 
         return res
 
-    def extractVarsData(self, vars_str: list, inst: dict) -> list:
-        vars_type = None
-        for var_str in vars_str:
-            var = self.getInstVarFromStr(var_str)
-            if var is not None:
-                vars_type = var["type"]
-                break
-
-        if vars_type is None:
-            if len(vars_str) > 0:
-                vars_type = self.extractVarInfoFromExpr(vars_str[0])[1]
-
-    def extractVarData(self, expr, inst_vars: dict) -> tuple:
+    def extractVarData(
+        self, expr, inst_vars: dict, fill_num_pred_type: bool, type_to_fill=None
+    ) -> tuple:
         var_info = self.extractVarInfoFromExpr(expr)
+        var_type = None
         if var_info is not None:
-            var_type = var_info[1]
-            var_pos = self.getPredefinedVarPos(var_info[0], var_type)
+            pred_type = var_info[1]
+            var_type = pred_type
+            if fill_num_pred_type is False and self.isDigitType(var_type):
+                pred_type = None
+            elif type_to_fill is not None:
+                pred_type = type_to_fill
+            var_pos = self.getPredefinedVarPos(var_info[0], pred_type)
             is_val = True
         elif self.isItVariable(expr):
             var_name = self.extractVarName(expr.args.exprs[0])
             var_pos = inst_vars[var_name]["number"]
+            var_type = inst_vars[var_name]["type"]
             is_val = False
         else:
             var_pos = self.getNextTempVar()
             is_val = False
 
-        return (var_pos, is_val)
+        return (var_pos, is_val, var_type)
 
     def isItVariable(self, var) -> bool:
         return type(var) == pycparser.c_ast.FuncCall and var.name.name == "__GET_VAR"
@@ -568,16 +610,39 @@ class PlcProgramParser:
         return var_pos
 
     def extractVarInfoFromExpr(self, expression) -> tuple:
+        if type(expression) == pycparser.c_ast.UnaryOp and expression.op == '-':
+            expression = expression.expr
+            expression.value = '-' + expression.value
         if type(expression) == pycparser.c_ast.Constant:
-            c_type_to_plc = {"int": "LINT", "double": "REAL"}
-            res_type = c_type_to_plc[expression.type]
-            if res_type is None:
-                return None
 
-            if res_type == "LINT":
+            if expression.type == "int":
                 res_value = int(expression.value)
-            else:
+                if res_value >= 0:
+                    if res_value <= 2**8 - 1:
+                        res_type = "USINT"
+                    elif res_value <= 2**16 - 1:
+                        res_type = "UINT"
+                    elif res_value <= 2**32 - 1:
+                        res_type = "LINT"
+                    else:
+                        res_type = "DINT"
+                else:
+                    if res_value >= -2 ** (8 - 1):
+                        res_type = "SINT"
+                    elif res_value >= -2 ** (16 - 1):
+                        res_type = "INT"
+                    elif res_value >= -2 ** (32 - 1):
+                        res_type = "LINT"
+                    else:
+                        res_type = "DINT"
+            elif expression.type == "double":
                 res_value = float(expression.value)
+                if res_value > 3.3e38 or res_value < -3.3e38:
+                    res_type = "LREAL"
+                else:
+                    res_type = "REAL"
+            else:
+                raise TypeError()
 
             return (res_value, res_type)
         elif type(expression) == pycparser.c_ast.FuncCall:
@@ -667,7 +732,7 @@ class PlcProgramParser:
 
         list_of_vars_dicts = list(map(lambda inst: inst["vars"], instances.values()))
         list_of_vars_dicts.append(global_vars)
-        
+
         for vars_dict in list_of_vars_dicts:
             for var_name, content in vars_dict.items():
                 location = None
@@ -677,7 +742,7 @@ class PlcProgramParser:
                 elif content["visibility"] == "GLOBAL":
                     location = global_vars[var_name]["location"]
                     var_number = global_vars[var_name]["number"]
-                
+
                 if location is not None:
                     loc_type = location[:2]
                     loc_port_pos_str = location[2:]
@@ -689,11 +754,9 @@ class PlcProgramParser:
                         location_pos = location_parts[0] * 8 + location_parts[1]
 
                     locations[loc_type][location_pos] = var_number
-        
+
         for loc_type, content in locations.items():
-            locations[loc_type] = {
-                key: content[key] for key in sorted(content.keys())
-            }
+            locations[loc_type] = {key: content[key] for key in sorted(content.keys())}
 
         return locations
 
@@ -710,7 +773,9 @@ class PlcProgramParser:
                 rf"if \({task}\) {{.*?_body__\(&(.*?)\).*?}}", tasks_sec, flags=re.S
             )
             for inst_task_name in inst_task_names:
-                tasks[task]["INSTANCES"].append(instances[resource_name.upper()+"__"+inst_task_name]["number"])
+                tasks[task]["INSTANCES"].append(
+                    instances[resource_name.upper() + "__" + inst_task_name]["number"]
+                )
 
         return tasks
 
@@ -735,9 +800,9 @@ class PlcProgramParser:
         header_bytes = struct.pack(
             "<H" + str(md5_len) + "s", md5_len, bytes(defs["MD5"], "utf-8")
         )
-        
+
         varsSize, varsCount = self.getProgramVarsSizeAndCount(global_vars, instances)
-        
+
         header_bytes += struct.pack("<II", varsSize, varsCount)
         # temp vars count
         header_bytes += struct.pack("<I", self._temp_var_max_pos)
@@ -773,7 +838,7 @@ class PlcProgramParser:
         # parse global vars
         global_vars_bytes = struct.pack("<I", len(global_vars.keys()))
         for var_name, content in global_vars.items():
-            
+
             var_bytes = bytes()
             pack_str = "<B"
             type_info = self.var_type_dict[content["type"]]
@@ -844,7 +909,7 @@ class PlcProgramParser:
         for var_name, content in global_vars.items():
             varsSize += self.getTypeMaxSize(content["type"])
         varsCount += len(global_vars)
-        return varsSize,varsCount
+        return varsSize, varsCount
 
     def getInstsVarsSizeAndCount(self, insts: dict) -> tuple:
         # TODO add array support
