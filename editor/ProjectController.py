@@ -1975,6 +1975,7 @@ class ProjectController(ConfigTreeNode, PLCControler):
         Stop PLC
         """
         if self._connector is not None and not self._connector.StopPLC():
+            self._connector.DisconnectRemoteTarget()
             self.logger.write_error(_("Couldn't stop PLC !\n"))
 
         self._Disconnect()
@@ -2226,7 +2227,6 @@ class ProjectController(ConfigTreeNode, PLCControler):
             f = open(self._getIECgeneratedcodepath(), 'r')
             program = f.read()
             f.close()
-            
             f = open(os.path.join(self._getBuildPath(), "POUS.c"), 'r')
             pous_file = f.read()
             f.close()
