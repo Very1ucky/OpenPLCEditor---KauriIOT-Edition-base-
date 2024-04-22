@@ -42,31 +42,56 @@ class PlcProgramParser:
         "STRING": {"pos": 19, "size": 1, "str_char": "s"},
     }
 
-    act_type_dict = {
-        "SET_VAR": 0,
-        "NOT": 1,
-        "AND": 2,
-        "OR": 3,
-        "IF": 4,
-        "FOR": 5,
-        "WHILE": 6,
-        "TON": 7,
-        "TOF": 8,
-        "R_TRIG": 9,
-        "F_TRIG": 10,
-        "CTU": 11,
-        "CTD": 12,
-        "SUB": 13,
-        "ADD": 14,
-        "DIV": 15,
-        "MULT": 16,
-        "EQ": 17,
-        "GT": 18,
-        "LT": 19,
-        "GE": 20,
-        "LE": 21,
-        "NE": 22,
-    }
+    act_types = [
+        "SET_VAR",
+        "NOT",
+        "AND",
+        "OR",
+        "SUB",
+        "ADD",
+        "DIV",
+        "MULT",
+        "EQ",
+        "GT",
+        "LT",
+        "GE",
+        "LE",
+        "NE",
+        "IF",
+        "FOR",
+        "WHILE",
+        "SR",
+        "RS",
+        "SEMA",
+        "R_TRIG",
+        "F_TRIG",
+        "CTU",
+        "CTU_DINT",
+        "CTU_LINT",
+        "CTU_UDINT",
+        "CTU_ULINT",
+        "CTD",
+        "CTD_DINT",
+        "CTD_LINT",
+        "CTD_UDINT",
+        "CTD_ULINT",
+        "CTUD",
+        "CTUD_DINT",
+        "CTUD_LINT",
+        "CTUD_UDINT",
+        "CTUD_ULINT",
+        "TP",
+        "TON",
+        "TOF",
+        "RTC",
+        "INTEGRAL",
+        "DERIVATIVE",
+        "PID",
+        "RAMP",
+        "HYSTERESIS",
+    ]
+
+    act_type_dict = {}
 
     loc_types = {"": 0, "IX": 1, "QX": 2, "IW": 3, "QW": 4}
 
@@ -140,6 +165,11 @@ class PlcProgramParser:
         global compiler_logs
         compiler_logs = ""
 
+        act_type_number = 0
+        for act_type in self.act_types:
+            self.act_type_dict[act_type] = act_type_number
+            act_type_number += 1
+
         pous_ast = self.transformPousCodeToAst(pous_code, build_path)
 
         self._predefined_temp_vars = dict()
@@ -210,74 +240,78 @@ class PlcProgramParser:
         for r in res:
             pous_code = pous_code.replace(r, "")
 
-        res = re.findall(
-            r"((EQ|GT|GE|LT|LE|NE)_.*?\(.*?, .*?, .*?, (.*?), (.*?\)?)\))", pous_code
+        boddies = re.findall(
+            r"void .*?_(?:init|body)__\(.*?\) \{\n(.*?\n)\}", pous_code, flags=re.S
         )
-        res += re.findall(
-            r"((EQ|GT|GE|LT|LE)_.*?\(\n.*?,\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
-            pous_code,
-            flags=re.S,
-        )
-        res += re.findall(
-            r"((NE)_.*?\(\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
-            pous_code,
-            flags=re.S,
-        )
-        for r in res:
-            op = self._code_to_op[r[1]]
-            pous_code = pous_code.replace(r[0], f"{r[2]} {op} {r[3]}")
+        for body in boddies:
+            old_body = body
+            res = re.findall(
+                r"((EQ|GT|GE|LT|LE|NE)_.*?\(.*?, .*?, .*?, (.*?), (.*?\)?)\))", body
+            )
+            res += re.findall(
+                r"((EQ|GT|GE|LT|LE)_.*?\(\n.*?,\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
+                body,
+                flags=re.S,
+            )
+            res += re.findall(
+                r"((NE)_.*?\(\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
+                body,
+                flags=re.S,
+            )
+            for r in res:
+                op = self._code_to_op[r[1]]
+                body = body.replace(r[0], f"{r[2]} {op} {r[3]}")
 
-        res = re.findall(
-            r"((AND|OR|XOR).*?\(\n.*?,\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
-            pous_code,
-            flags=re.S,
-        )
-        for r in res:
-            op = self._code_to_op[r[1]]
-            pous_code = pous_code.replace(r[0], f"{r[2]} {op} {r[3]}")
+            res = re.findall(
+                r"((AND|OR|XOR)__.*?\(\n.*?,\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
+                body,
+                flags=re.S,
+            )
+            for r in res:
+                op = self._code_to_op[r[1]]
+                body = body.replace(r[0], f"{r[2]} {op} {r[3]}")
 
-        res = re.findall(
-            r"((?:__SET_VAR|__SET_LOCATED|__SET_EXTERNAL)\(data__->(.*?),,(.*?)\);)",
-            pous_code,
-        )
-        for r in res:
-            to_var = r[1].replace(",", "")
-            from_var = r[2]
-            pous_code = pous_code.replace(r[0], f"__SET_VAR({to_var}, {from_var});")
+            res = re.findall(
+                r"((?:__SET_VAR|__SET_LOCATED|__SET_EXTERNAL)\(data__->(.*?),,(.*?)\);)",
+                body,
+            )
+            for r in res:
+                to_var = r[1].replace(",", "")
+                from_var = r[2]
+                body = body.replace(r[0], f"__SET_VAR({to_var}, {from_var});")
 
-        res = re.findall(r"(__GET_VAR\(data__->(.*?),\))", pous_code)
-        res += re.findall(r"(__GET_LOCATED\(data__->(.*?),\))", pous_code)
-        for r in res:
-            pous_code = pous_code.replace(r[0], f"__GET_VAR({r[1]})")
+            res = re.findall(r"(__GET_VAR\(data__->(.*?),?\))", body)
+            res += re.findall(r"(__GET_LOCATED\(data__->(.*?),\))", body)
+            for r in res:
+                body = body.replace(r[0], f"__GET_VAR({r[1]})")
 
-        res = re.findall(
-            r"(__INIT_LOCATED\(.*?,__(.*?),data__->(.*?),retain\))", pous_code
-        )
-        for r in res:
-            pous_code = pous_code.replace(r[0], f"__INIT_LOCATED({r[2]},{r[1]});")
+            res = re.findall(
+                r"(__INIT_LOCATED\(.*?,__(.*?),data__->(.*?),retain\))", body
+            )
+            for r in res:
+                body = body.replace(r[0], f"__INIT_LOCATED({r[2]},{r[1]});")
 
-        res = re.findall(
-            r"(__INIT_EXTERNAL\(.*?,.*?,data__->(.*?),retain\))", pous_code
-        )
-        for r in res:
-            pous_code = pous_code.replace(r[0], f"__INIT_EXTERNAL({r[1]});")
+            res = re.findall(r"(__INIT_EXTERNAL\(.*?,.*?,data__->(.*?),retain\))", body)
+            for r in res:
+                body = body.replace(r[0], f"__INIT_EXTERNAL({r[1]});")
 
-        res = re.findall(r"(__INIT_VAR\(data__->(.*?),(.*?),retain\))", pous_code)
-        res += re.findall(r"(__INIT_LOCATED_VALUE\(data__->(.*?),(.*)\))", pous_code)
-        for r in res:
-            pous_code = pous_code.replace(r[0], f"__INIT_VAR({r[1]},{r[2]});")
+            res = re.findall(r"(__INIT_VAR\(data__->(.*?),(.*?),retain\))", body)
+            res += re.findall(r"(__INIT_LOCATED_VALUE\(data__->(.*?),(.*)\))", body)
+            for r in res:
+                body = body.replace(r[0], f"__INIT_VAR({r[1]},{r[2]});")
 
-        res = re.findall(r"(_init__\(&data__->(.*?),retain\))", pous_code)
-        for r in res:
-            pous_code = pous_code.replace(r[0], f"_init__({r[1]})")
+            res = re.findall(r"(_init__\(&data__->(.*?),retain\))", body)
+            for r in res:
+                body = body.replace(r[0], f"_init__({r[1]})")
 
-        res = re.findall(r"(_body__\(&data__->(.*?)\))", pous_code)
-        for r in res:
-            pous_code = pous_code.replace(r[0], f"_body__({r[1]})")
+            res = re.findall(r"(_body__\(&data__->(.*?)\))", body)
+            for r in res:
+                body = body.replace(r[0], f"_body__({r[1]})")
 
-        res = re.findall(
-            r"(  goto __end;\n\n__end:\n\W*return;\n)", pous_code, flags=re.S
-        )
+            res = re.findall(
+                r"(  goto __end;\n\n__end:\n\W*return;\n)", body, flags=re.S
+            )
+            pous_code = pous_code.replace(old_body, body)
         for r in res:
             pous_code = pous_code.replace(r, "")
 
@@ -287,11 +321,20 @@ class PlcProgramParser:
             pous_ast = parse_file(
                 os.path.join(build_path, "POUS.c"),
                 use_cpp=True,
-                cpp_path=os.path.join(os.getcwd(), 'mingw', 'bin', 'gcc.exe'),
-                cpp_args=["-E", os.path.join(os.getcwd(), 'editor', 'kauri_parser', 'utils', 'fake_libc_include')],
+                cpp_path=os.path.join(os.getcwd(), "mingw", "bin", "gcc.exe"),
+                cpp_args=[
+                    "-E",
+                    os.path.join(
+                        os.getcwd(),
+                        "editor",
+                        "kauri_parser",
+                        "utils",
+                        "fake_libc_include",
+                    ),
+                ],
             )
             f.write(str(pous_ast))
-        
+
         return pous_ast
 
     def extractInstancesAndGlobVars(
@@ -969,7 +1012,7 @@ class PlcProgramParser:
     def getTypeMaxSize(self, type: str) -> int:
         type_info = self.var_type_dict[type]
         if type == "STRING":
-            return 255
+            return 126
         else:
             return type_info["size"]
 
