@@ -1712,8 +1712,8 @@ class ProjectController(ConfigTreeNode, PLCControler):
                         else:
                             # complain if trace is incomplete, but only once per debug session
                             if self.LastComplainDebugToken != self.DebugToken :
-                                self.logger.write_warning(
-                                    _("Debug: target couldn't trace all requested variables.\n"))
+                                #self.logger.write_warning(
+                                #    _("Debug: target couldn't trace all requested variables.\n"))
                                 self.LastComplainDebugToken = self.DebugToken
 
 

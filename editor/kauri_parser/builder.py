@@ -3,7 +3,7 @@ import platform as os_platform
 import time
 import struct
 import socket
-from numpy import isin
+from numpy import isin, var
 import pycparser.ast_transforms
 import pycparser.c_ast
 import serial
@@ -57,6 +57,17 @@ class PlcProgramParser:
         "GE",
         "LE",
         "NE",
+        "ABS",
+        "SQRT",
+        "LN",
+        "LOG",
+        "EXP",
+        "SIN",
+        "COS",
+        "TAN",
+        "ASIN",
+        "ACOS",
+        "ATAN",
         "IF",
         "FOR",
         "WHILE",
@@ -88,7 +99,7 @@ class PlcProgramParser:
         "DERIVATIVE",
         "PID",
         "RAMP",
-        "HYSTERESIS",
+        "HYSTERESIS"
     ]
 
     act_type_dict = {}
@@ -108,7 +119,7 @@ class PlcProgramParser:
 
     _common_var_type = None
 
-    _code_to_op = {
+    _code_to_binary_op = {
         "GT": ">",
         "LT": "<",
         "GE": ">=",
@@ -134,6 +145,20 @@ class PlcProgramParser:
         "*": "MULT",
         "/": "DIV",
     }
+    
+    _unary_funcs = [
+        "ABS",
+        "SQRT",
+        "LN",
+        "LOG",
+        "EXP",
+        "SIN",
+        "COS",
+        "TAN",
+        "ASIN",
+        "ACOS",
+        "ATAN"
+    ]
 
     def scrollToEnd(self, txtCtrl):
         if os_platform.system() != "Darwin":
@@ -143,9 +168,9 @@ class PlcProgramParser:
         txtCtrl.Update()
 
     def outputIntoCompileWindow(self, str: str):
-        global compiler_logs
-        compiler_logs += str
-        wx.CallAfter(self.txtCtrl.SetValue, compiler_logs)
+        #global compiler_logs
+        #compiler_logs += str
+        wx.CallAfter(self.txtCtrl.AppendText, str)
         wx.CallAfter(self.scrollToEnd, self.txtCtrl)
 
     def build(
@@ -162,8 +187,8 @@ class PlcProgramParser:
         update_subsystem,
         build_path,
     ):
-        global compiler_logs
-        compiler_logs = ""
+        #global compiler_logs
+        #compiler_logs = ""
 
         act_type_number = 0
         for act_type in self.act_types:
@@ -177,36 +202,38 @@ class PlcProgramParser:
         self._temp_var_max_pos = 0
 
         self.txtCtrl = txtCtrl
+        
 
         # output definitions (MD5 hash, modbus info, ticktime)
-        compiler_logs += "Definitions:\n"
+        self.outputIntoCompileWindow("Definitions:\n")
         for def_name, content in defs.items():
             self.outputIntoCompileWindow(f"\t{def_name}: {content}\n")
         self.outputIntoCompileWindow("\n")
-
+        self.txtCtrl.SetDefaultStyle(wx.TextAttr(wx.RED))
         # extract instances
         (global_vars, instances) = self.extractInstancesAndGlobVars(
             program_list, debug_vars_list, pous_ast, resource_code
         )
-        compiler_logs += "Predefined variables:\n"
+        
+        self.outputIntoCompileWindow("Predefined variables:\n")
         for val, content in self._predefined_temp_vars.items():
             self.outputIntoCompileWindow(f"\t{val}: {content}\n")
 
-        compiler_logs += f"Temp vars count: {self._temp_var_max_pos}\n\n"
+        self.outputIntoCompileWindow(f"Temp vars count: {self._temp_var_max_pos}\n\n")
 
-        compiler_logs += "Global vars:\n"
+        self.outputIntoCompileWindow("Global vars:\n")
         for val, content in global_vars.items():
             self.outputIntoCompileWindow(f"\t{val}: {content}\n")
 
         # output instances values into debug window
         for path, inst in instances.items():
             self.outputIntoCompileWindow("Instance: " + path + "\n")
-
-            compiler_logs += "\tVars:\n"
+            
+            self.outputIntoCompileWindow("\tVars:\n")
             for var_name, content in inst["vars"].items():
                 self.outputIntoCompileWindow(f"\t\t{var_name}: {content}\n")
 
-            compiler_logs += "\tActions:\n"
+            self.outputIntoCompileWindow("\tActions:\n")
             for act in inst["actions"]:
                 self.outputIntoCompileWindow(f"\t\t{act}\n")
             self.outputIntoCompileWindow("\n")
@@ -214,7 +241,7 @@ class PlcProgramParser:
         # extract locations from instances
         locations = self.extractLocations(instances, global_vars)
         # output locations into window output
-        compiler_logs += "Locations:\n"
+        self.outputIntoCompileWindow("Locations:\n")
         for loc_name, content in locations.items():
             self.outputIntoCompileWindow(f"\t{loc_name}: {content}\n")
         self.outputIntoCompileWindow("\n")
@@ -222,7 +249,7 @@ class PlcProgramParser:
         # extract tasks from c file with resources
         tasks = self.extractTasks(resource_code, resource_name, instances)
         # output tasks into window output
-        compiler_logs += "Tasks:\n"
+        self.outputIntoCompileWindow("Tasks:\n")
         for task_name, content in tasks.items():
             self.outputIntoCompileWindow(f"\t{task_name}: {content}\n")
 
@@ -245,42 +272,50 @@ class PlcProgramParser:
         )
         for body in boddies:
             old_body = body
-            res = re.findall(
-                r"((EQ|GT|GE|LT|LE|NE)_.*?\(.*?, .*?, .*?, (.*?), (.*?\)?)\))", body
-            )
-            res += re.findall(
-                r"((EQ|GT|GE|LT|LE)_.*?\(\n.*?,\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
-                body,
-                flags=re.S,
-            )
-            res += re.findall(
-                r"((NE)_.*?\(\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
-                body,
-                flags=re.S,
-            )
-            for r in res:
-                op = self._code_to_op[r[1]]
-                body = body.replace(r[0], f"{r[2]} {op} {r[3]}")
+            
+            #for unary_func in self._unary_funcs:
+            #    res = re.findall(rf"({unary_func}__.*?\(\n.*?,\n.*?,\n\W*\(.*?\)([^\n]*?\)?)\))", body, flags=re.S)
+            #    for r in res:
+            #        body.replace(r[0], f"{unary_func}({r[1]})")
+            
+            #res = re.findall(
+            #    r"((EQ|GT|GE|LT|LE|NE)_.*?\(.*?, .*?, .*?, (.*?), (.*?\)?)\))", body
+            #)
+            #res += re.findall(
+            #    r"((EQ|GT|GE|LT|LE)_.*?\(\n.*?,\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
+            #    body,
+            #    flags=re.S,
+            #)
+            #res += re.findall(
+            #    r"((NE)_.*?\(\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
+            #    body,
+            #    flags=re.S,
+            #)
+            #for r in res:
+            #    op = self._code_to_op[r[1]]
+            #    body = body.replace(r[0], f"{r[2]} {op} {r[3]}")
 
-            res = re.findall(
-                r"((AND|OR|XOR)__.*?\(\n.*?,\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
-                body,
-                flags=re.S,
-            )
-            for r in res:
-                op = self._code_to_op[r[1]]
-                body = body.replace(r[0], f"{r[2]} {op} {r[3]}")
+            #res = re.findall(
+            #    r"((AND|OR|XOR)__.*?\(\n.*?,\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
+            #    body,
+            #    flags=re.S,
+            #)
+            #for r in res:
+            #    op = self._code_to_op[r[1]]
+            #    body = body.replace(r[0], f"{r[2]} {op} {r[3]}")
 
+            for var_name in self.var_type_dict.keys():
+                body = body.replace(f"({var_name})", "")
+            
             res = re.findall(
-                r"((?:__SET_VAR|__SET_LOCATED|__SET_EXTERNAL)\(data__->(.*?),,(.*?)\);)",
+                r"((?:__SET_VAR|__SET_LOCATED|__SET_EXTERNAL)\(data__->(.*?),,)",
                 body,
             )
             for r in res:
                 to_var = r[1].replace(",", "")
-                from_var = r[2]
-                body = body.replace(r[0], f"__SET_VAR({to_var}, {from_var});")
+                body = body.replace(r[0], f"__SET_VAR({to_var},")
 
-            res = re.findall(r"(__GET_VAR\(data__->(.*?),?\))", body)
+            res = re.findall(r"((?:__GET_VAR|__GET_EXTERNAL)\(data__->(.*?),?\))", body)
             res += re.findall(r"(__GET_LOCATED\(data__->(.*?),\))", body)
             for r in res:
                 body = body.replace(r[0], f"__GET_VAR({r[1]})")
@@ -313,8 +348,8 @@ class PlcProgramParser:
             )
             pous_code = pous_code.replace(old_body, body)
         for r in res:
-            pous_code = pous_code.replace(r, "")
-
+            pous_code = pous_code.replace(r, "")    
+        
         with open(os.path.join(build_path, "POUS.c"), "w") as f:
             f.write(pous_code)
         with open(os.path.join(build_path, "res.txt"), "w") as f:
@@ -334,7 +369,9 @@ class PlcProgramParser:
                 ],
             )
             f.write(str(pous_ast))
-
+        
+        
+        
         return pous_ast
 
     def extractInstancesAndGlobVars(
@@ -494,7 +531,7 @@ class PlcProgramParser:
         return actions
 
     def extractFuncActions(
-        self, func: pycparser.c_ast.FuncCall, inst_vars: dict
+        self, func: pycparser.c_ast.FuncCall, inst_vars: dict, var_pos=-100000, common_type=None
     ) -> list:
         actions = list()
 
@@ -517,6 +554,14 @@ class PlcProgramParser:
             var_to_set = self.extractVarName(func.args.exprs[0])
             act_var_pos = inst_vars[var_to_set + ".EN"]["number"]
             act_vars.append(self.getVarDict(act_var_pos, False))
+        elif func_name in self._unary_funcs:
+            act_type = func_name
+            act_vars.append(self.getVarDict(var_pos, False))
+            (act_var_var_pos, act_is_val, acts) = self.extractFuncArgActions(
+                func.args.exprs[0], inst_vars, common_type
+            )
+            act_vars.append(self.getVarDict(act_var_var_pos, act_is_val))
+            actions += acts
 
         actions.append({"act_type": act_type, "vars": act_vars})
 
@@ -533,6 +578,10 @@ class PlcProgramParser:
 
         if var_pos >= 0:
             return (var_pos, is_val, actions)
+        exp_to_pars = self.transformCond(exp_to_pars)
+        if type(exp_to_pars) == pycparser.c_ast.FuncCall:
+            actions = self.extractFuncActions(exp_to_pars, inst_vars, var_pos, common_type)
+            return (var_pos, is_val, actions)
 
         conds = [{"pos": var_pos, "cond": exp_to_pars}]
         if self.isDigitType(common_type):
@@ -543,7 +592,9 @@ class PlcProgramParser:
                 self.fillNoneTypesOfPredVars(common_type, actions)
                 common_type = None
                 continue
-            cond_type = type(cond["cond"])
+            
+            cond_type = type(cond["cond"])                
+            
             if cond_type in (pycparser.c_ast.BinaryOp, pycparser.c_ast.UnaryOp):
                 if cond["cond"].op in (">", "<", ">=", "<=", "==", "!="):
                     conds.append(None)
@@ -554,36 +605,73 @@ class PlcProgramParser:
                         "vars": [self.getVarDict(cond["pos"], False)],
                     },
                 )
-                action = actions[0]
+                
+            if cond_type == pycparser.c_ast.FuncCall:
+                if cond["cond"].name.name in self._unary_funcs:
+                    actions.insert(
+                        0,
+                        {
+                            "act_type": cond["cond"].name.name,
+                            "vars": [self.getVarDict(cond["pos"], False)],
+                        },
+                    )
+            action = actions[0]
 
             values = []
             if cond_type == pycparser.c_ast.BinaryOp:
                 values = [cond["cond"].left, cond["cond"].right]
             elif cond_type == pycparser.c_ast.UnaryOp:
                 values = [cond["cond"].expr]
+            elif cond_type == pycparser.c_ast.FuncCall:
+                values = cond["cond"].args.exprs
 
             for c in values:
-                if type(c) in (
+                trans_c = self.transformCond(c)
+                if type(trans_c) in (
                     pycparser.c_ast.Constant,
-                    pycparser.c_ast.ID,
                     pycparser.c_ast.FuncCall,
-                ) or (type(c) == pycparser.c_ast.UnaryOp and c.op == "-"):
-                    (vp, iv, var_type) = self.extractVarData(c, inst_vars, False)
-                    if self.isSrcTypeGreater(var_type, common_type):
-                        common_type = var_type
+                ) or (type(trans_c) == pycparser.c_ast.UnaryOp and trans_c.op == "-"):
+                    (vp, iv, var_type) = self.extractVarData(trans_c, inst_vars, False)
+                    
                     if vp < 0:
-                        com_acts = self.extractFuncActions(c, inst_vars, vp)
-                        for com_act in reversed(com_acts):
-                            actions.insert(0, com_act)
+                        conds.append({"pos": vp, "cond": trans_c})
+                        #com_acts = self.extractFuncActions(trans_c, inst_vars, vp, common_type)
+                        #for com_act in reversed(com_acts):
+                        #    actions.insert(0, com_act)
+                    elif self.isSrcTypeGreater(var_type, common_type):
+                        common_type = var_type
+                    
                 else:
                     vp = self.getNextTempVar()
                     iv = False
-                    conds.append({"pos": vp, "cond": c})
-                if cond_type in (pycparser.c_ast.BinaryOp, pycparser.c_ast.UnaryOp):
+                    conds.append({"pos": vp, "cond": trans_c})
+                if cond_type in (pycparser.c_ast.BinaryOp, pycparser.c_ast.UnaryOp, pycparser.c_ast.FuncCall):
                     action["vars"].append(self.getVarDict(vp, iv))
 
         return (var_pos, is_val, actions)
 
+    
+    
+    def transformCond(self, cond):
+        res = cond
+        if type(cond) == pycparser.c_ast.FuncCall:
+            op_name = cond.name.name.split("__")[0]
+            if op_name == cond.name.name:
+                return res
+            if op_name in self._code_to_binary_op.keys():
+                op = self._code_to_binary_op[op_name]
+                if op_name != "NE":
+                    left = cond.args.exprs[3]
+                    right = cond.args.exprs[4]
+                else:
+                    left = cond.args.exprs[2]
+                    right = cond.args.exprs[3]
+                res = pycparser.c_ast.BinaryOp(op, left, right)
+                
+            elif op_name in self._unary_funcs:
+                res = pycparser.c_ast.FuncCall(pycparser.c_ast.ID(op_name), pycparser.c_ast.ExprList([cond.args.exprs[2]]))
+        return res
+    
     def isDigitType(self, var_type: str) -> bool:
         return var_type not in ("BOOL", "STRING")
 
@@ -695,13 +783,17 @@ class PlcProgramParser:
         return var_pos
 
     def extractVarInfoFromExpr(self, expression) -> tuple:
+        is_negative = False
         if type(expression) == pycparser.c_ast.UnaryOp and expression.op == "-":
             expression = expression.expr
-            expression.value = "-" + expression.value
+            is_negative = True
+            
         if type(expression) == pycparser.c_ast.Constant:
 
             if expression.type == "int":
                 res_value = int(expression.value)
+                if is_negative:
+                    res_value *= -1
                 if res_value >= 0:
                     if res_value <= 2**8 - 1:
                         res_type = "USINT"
@@ -722,6 +814,8 @@ class PlcProgramParser:
                         res_type = "DINT"
             elif expression.type == "double":
                 res_value = float(expression.value)
+                if is_negative:
+                    res_value *= -1
                 if res_value > 3.3e38 or res_value < -3.3e38:
                     res_type = "LREAL"
                 else:

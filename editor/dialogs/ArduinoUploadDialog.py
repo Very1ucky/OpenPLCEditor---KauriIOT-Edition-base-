@@ -123,6 +123,7 @@ class ArduinoUploadDialog(wx.Dialog):
         self.output_text.SetBackgroundColour( wx.BLACK )
         self.output_text.SetForegroundColour( wx.WHITE )
         self.output_text.SetDefaultStyle(wx.TextAttr(wx.WHITE))
+        #self.output_text.AppendText
 
         bSizer21.Add( self.output_text, 0, wx.ALL|wx.EXPAND, 5 )
 
