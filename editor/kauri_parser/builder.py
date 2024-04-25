@@ -50,7 +50,10 @@ class PlcProgramParser:
         "SUB",
         "ADD",
         "DIV",
-        "MULT",
+        "MUL",
+        "MOD",
+        "EXPT",
+        "MOVE",
         "EQ",
         "GT",
         "LT",
@@ -129,6 +132,12 @@ class PlcProgramParser:
         "AND": "&&",
         "OR": "||",
         "XOR": "&&",
+        "ADD": "+",
+        "SUB": "-",
+        "MUL": "*",
+        "DIV": "/",
+        "MOD": "%",
+        "EXPT": "^"
     }
     _op_to_code = {
         ">": "GT",
@@ -142,8 +151,10 @@ class PlcProgramParser:
         "!": "NOT",
         "+": "ADD",
         "-": "SUB",
-        "*": "MULT",
+        "*": "MUL",
         "/": "DIV",
+        "%": "MOD",
+        "^": "EXPT"
     }
     
     _unary_funcs = [
@@ -157,7 +168,8 @@ class PlcProgramParser:
         "TAN",
         "ASIN",
         "ACOS",
-        "ATAN"
+        "ATAN",
+        "MOVE"
     ]
 
     def scrollToEnd(self, txtCtrl):
@@ -635,9 +647,6 @@ class PlcProgramParser:
                     
                     if vp < 0:
                         conds.append({"pos": vp, "cond": trans_c})
-                        #com_acts = self.extractFuncActions(trans_c, inst_vars, vp, common_type)
-                        #for com_act in reversed(com_acts):
-                        #    actions.insert(0, com_act)
                     elif self.isSrcTypeGreater(var_type, common_type):
                         common_type = var_type
                     
@@ -660,16 +669,18 @@ class PlcProgramParser:
                 return res
             if op_name in self._code_to_binary_op.keys():
                 op = self._code_to_binary_op[op_name]
-                if op_name != "NE":
-                    left = cond.args.exprs[3]
-                    right = cond.args.exprs[4]
-                else:
+                if op_name in ("NE", "EXPT", "MOD", "DIV", "SUB"):
                     left = cond.args.exprs[2]
                     right = cond.args.exprs[3]
+                else:
+                    left = cond.args.exprs[3]
+                    right = cond.args.exprs[4]
                 res = pycparser.c_ast.BinaryOp(op, left, right)
                 
             elif op_name in self._unary_funcs:
                 res = pycparser.c_ast.FuncCall(pycparser.c_ast.ID(op_name), pycparser.c_ast.ExprList([cond.args.exprs[2]]))
+        elif type(cond) == pycparser.c_ast.TernaryOp:
+            res = cond.iffalse
         return res
     
     def isDigitType(self, var_type: str) -> bool:
@@ -701,6 +712,7 @@ class PlcProgramParser:
         )
 
     def fillNoneTypesOfPredVars(self, type_to_fill: str, actions: dict):
+        # TODO Rewrite this shit
         pred_vars_keys = list(self._predefined_temp_vars.keys())
         old_new_numbers = dict()
         for pred_var_key in pred_vars_keys:
@@ -713,7 +725,16 @@ class PlcProgramParser:
                     self._predefined_temp_vars[(pred_var_key[0], type_to_fill)] = temp
                 else:
                     number = temp["number"]
-                    old_new_numbers[temp["number"]] = self._predefined_temp_vars.get(
+                    is_changed = False
+                    for old, new in old_new_numbers.items():
+                        if new == temp["number"]:
+                            old_new_numbers[old] = self._predefined_temp_vars.get(
+                        (pred_var_key[0], type_to_fill)
+                    )["number"]
+                            is_changed = True
+                            break
+                    if not is_changed:
+                        old_new_numbers[temp["number"]] = self._predefined_temp_vars.get(
                         (pred_var_key[0], type_to_fill)
                     )["number"]
 
@@ -721,11 +742,18 @@ class PlcProgramParser:
                         pred_content = self._predefined_temp_vars.get(pred)
                         if pred_content is None or pred_content["number"] <= number:
                             continue
-                        old_new_numbers[pred_content["number"]] = number
+                        is_changed = False
+                        for old, new in old_new_numbers.items():
+                            if new == pred_content["number"]:
+                                old_new_numbers[old] = number
+                                is_changed = True
+                                break
+                        if not is_changed:
+                            old_new_numbers[pred_content["number"]] = number
                         pred_content["number"] = number
                         number += 1
 
-                    self.changePredVarsNumbersInActions(actions, old_new_numbers)
+        self.changePredVarsNumbersInActions(actions, old_new_numbers)
 
     def changePredVarsNumbersInActions(self, actions: dict, old_new: dict):
         for act in actions:
