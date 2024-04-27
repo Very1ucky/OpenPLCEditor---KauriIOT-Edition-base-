@@ -1,9 +1,10 @@
 import os
 import platform as os_platform
+import platform as os_platform
 import time
 import struct
 import socket
-from numpy import isin, var
+from typing import Iterable
 import pycparser.ast_transforms
 import pycparser.c_ast
 import serial
@@ -35,10 +36,10 @@ class PlcProgramParser:
         "LINT": {"pos": 12, "size": 8, "str_char": "q"},
         "REAL": {"pos": 13, "size": 4, "str_char": "f"},
         "LREAL": {"pos": 14, "size": 8, "str_char": "d"},
-        "TIME": {"pos": 15, "size": 4, "str_char": "f"},
-        "DATE": {"pos": 16, "size": 4, "str_char": "f"},
-        "TOD": {"pos": 17, "size": 4, "str_char": "f"},
-        "DT": {"pos": 18, "size": 4, "str_char": "f"},
+        "TIME": {"pos": 15, "size": 8, "str_char": "2i"},
+        "DATE": {"pos": 16, "size": 8, "str_char": "2i"},
+        "TOD": {"pos": 17, "size": 8, "str_char": "2i"},
+        "DT": {"pos": 18, "size": 8, "str_char": "2i"},
         "STRING": {"pos": 19, "size": 1, "str_char": "s"},
     }
 
@@ -47,19 +48,24 @@ class PlcProgramParser:
         "NOT",
         "AND",
         "OR",
-        "SUB",
-        "ADD",
-        "DIV",
-        "MUL",
-        "MOD",
-        "EXPT",
-        "MOVE",
         "EQ",
         "GT",
         "LT",
         "GE",
         "LE",
         "NE",
+        "SUB",
+        "ADD",
+        "DIV",
+        "MUL",
+        "TIME_SUB",
+        "TIME_ADD",
+        "TIME_DIV",
+        "TIME_MUL",
+        "MOD",
+        "EXPT",
+        "MOVE",
+        "NEG",
         "ABS",
         "SQRT",
         "LN",
@@ -102,7 +108,8 @@ class PlcProgramParser:
         "DERIVATIVE",
         "PID",
         "RAMP",
-        "HYSTERESIS"
+        "HYSTERESIS",
+        "RETURN"
     ]
 
     act_type_dict = {}
@@ -137,7 +144,11 @@ class PlcProgramParser:
         "MUL": "*",
         "DIV": "/",
         "MOD": "%",
-        "EXPT": "^"
+        "EXPT": "^",
+        "TIME_ADD": "T+",
+        "TIME_SUB": "T-",
+        "TIME_MUL": "T*",
+        "TIME_DIV": "T/"
     }
     _op_to_code = {
         ">": "GT",
@@ -154,10 +165,15 @@ class PlcProgramParser:
         "*": "MUL",
         "/": "DIV",
         "%": "MOD",
-        "^": "EXPT"
+        "^": "EXPT",
+        "T+": "TIME_ADD",
+        "T-": "TIME_SUB",
+        "T*": "TIME_MUL",
+        "T/": "TIME_DIV"
     }
-    
+
     _unary_funcs = [
+        "NEG",
         "ABS",
         "SQRT",
         "LN",
@@ -169,7 +185,7 @@ class PlcProgramParser:
         "ASIN",
         "ACOS",
         "ATAN",
-        "MOVE"
+        "MOVE",
     ]
 
     def scrollToEnd(self, txtCtrl):
@@ -180,8 +196,8 @@ class PlcProgramParser:
         txtCtrl.Update()
 
     def outputIntoCompileWindow(self, str: str):
-        #global compiler_logs
-        #compiler_logs += str
+        # global compiler_logs
+        # compiler_logs += str
         wx.CallAfter(self.txtCtrl.AppendText, str)
         wx.CallAfter(self.scrollToEnd, self.txtCtrl)
 
@@ -199,8 +215,8 @@ class PlcProgramParser:
         update_subsystem,
         build_path,
     ):
-        #global compiler_logs
-        #compiler_logs = ""
+        # global compiler_logs
+        # compiler_logs = ""
 
         act_type_number = 0
         for act_type in self.act_types:
@@ -214,7 +230,6 @@ class PlcProgramParser:
         self._temp_var_max_pos = 0
 
         self.txtCtrl = txtCtrl
-        
 
         # output definitions (MD5 hash, modbus info, ticktime)
         self.outputIntoCompileWindow("Definitions:\n")
@@ -226,7 +241,7 @@ class PlcProgramParser:
         (global_vars, instances) = self.extractInstancesAndGlobVars(
             program_list, debug_vars_list, pous_ast, resource_code
         )
-        
+
         self.outputIntoCompileWindow("Predefined variables:\n")
         for val, content in self._predefined_temp_vars.items():
             self.outputIntoCompileWindow(f"\t{val}: {content}\n")
@@ -240,7 +255,7 @@ class PlcProgramParser:
         # output instances values into debug window
         for path, inst in instances.items():
             self.outputIntoCompileWindow("Instance: " + path + "\n")
-            
+
             self.outputIntoCompileWindow("\tVars:\n")
             for var_name, content in inst["vars"].items():
                 self.outputIntoCompileWindow(f"\t\t{var_name}: {content}\n")
@@ -284,41 +299,41 @@ class PlcProgramParser:
         )
         for body in boddies:
             old_body = body
-            
-            #for unary_func in self._unary_funcs:
+
+            # for unary_func in self._unary_funcs:
             #    res = re.findall(rf"({unary_func}__.*?\(\n.*?,\n.*?,\n\W*\(.*?\)([^\n]*?\)?)\))", body, flags=re.S)
             #    for r in res:
             #        body.replace(r[0], f"{unary_func}({r[1]})")
-            
-            #res = re.findall(
+
+            # res = re.findall(
             #    r"((EQ|GT|GE|LT|LE|NE)_.*?\(.*?, .*?, .*?, (.*?), (.*?\)?)\))", body
-            #)
-            #res += re.findall(
+            # )
+            # res += re.findall(
             #    r"((EQ|GT|GE|LT|LE)_.*?\(\n.*?,\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
             #    body,
             #    flags=re.S,
-            #)
-            #res += re.findall(
+            # )
+            # res += re.findall(
             #    r"((NE)_.*?\(\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
             #    body,
             #    flags=re.S,
-            #)
-            #for r in res:
+            # )
+            # for r in res:
             #    op = self._code_to_op[r[1]]
             #    body = body.replace(r[0], f"{r[2]} {op} {r[3]}")
 
-            #res = re.findall(
+            # res = re.findall(
             #    r"((AND|OR|XOR)__.*?\(\n.*?,\n.*?,\n.*?,\n\W*\(.*?\)(.*?),\n\W*\(.*?\)([^\n]*?\)?)\))",
             #    body,
             #    flags=re.S,
-            #)
-            #for r in res:
+            # )
+            # for r in res:
             #    op = self._code_to_op[r[1]]
             #    body = body.replace(r[0], f"{r[2]} {op} {r[3]}")
 
             for var_name in self.var_type_dict.keys():
                 body = body.replace(f"({var_name})", "")
-            
+
             res = re.findall(
                 r"((?:__SET_VAR|__SET_LOCATED|__SET_EXTERNAL)\(data__->(.*?),,)",
                 body,
@@ -354,14 +369,12 @@ class PlcProgramParser:
             res = re.findall(r"(_body__\(&data__->(.*?)\))", body)
             for r in res:
                 body = body.replace(r[0], f"_body__({r[1]})")
-
-            res = re.findall(
-                r"(  goto __end;\n\n__end:\n\W*return;\n)", body, flags=re.S
-            )
+                
+            body = body.replace("INT", "int")
+            
             pous_code = pous_code.replace(old_body, body)
-        for r in res:
-            pous_code = pous_code.replace(r, "")    
-        
+            
+
         with open(os.path.join(build_path, "POUS.c"), "w") as f:
             f.write(pous_code)
         with open(os.path.join(build_path, "res.txt"), "w") as f:
@@ -381,9 +394,7 @@ class PlcProgramParser:
                 ],
             )
             f.write(str(pous_ast))
-        
-        
-        
+
         return pous_ast
 
     def extractInstancesAndGlobVars(
@@ -543,7 +554,11 @@ class PlcProgramParser:
         return actions
 
     def extractFuncActions(
-        self, func: pycparser.c_ast.FuncCall, inst_vars: dict, var_pos=-100000, common_type=None
+        self,
+        func: pycparser.c_ast.FuncCall,
+        inst_vars: dict,
+        var_pos=-100000,
+        common_type=None,
     ) -> list:
         actions = list()
 
@@ -566,14 +581,6 @@ class PlcProgramParser:
             var_to_set = self.extractVarName(func.args.exprs[0])
             act_var_pos = inst_vars[var_to_set + ".EN"]["number"]
             act_vars.append(self.getVarDict(act_var_pos, False))
-        elif func_name in self._unary_funcs:
-            act_type = func_name
-            act_vars.append(self.getVarDict(var_pos, False))
-            (act_var_var_pos, act_is_val, acts) = self.extractFuncArgActions(
-                func.args.exprs[0], inst_vars, common_type
-            )
-            act_vars.append(self.getVarDict(act_var_var_pos, act_is_val))
-            actions += acts
 
         actions.append({"act_type": act_type, "vars": act_vars})
 
@@ -591,9 +598,6 @@ class PlcProgramParser:
         if var_pos >= 0:
             return (var_pos, is_val, actions)
         exp_to_pars = self.transformCond(exp_to_pars)
-        if type(exp_to_pars) == pycparser.c_ast.FuncCall:
-            actions = self.extractFuncActions(exp_to_pars, inst_vars, var_pos, common_type)
-            return (var_pos, is_val, actions)
 
         conds = [{"pos": var_pos, "cond": exp_to_pars}]
         if self.isDigitType(common_type):
@@ -605,86 +609,123 @@ class PlcProgramParser:
                 common_type = None
                 continue
             
-            cond_type = type(cond["cond"])                
+            values = self.processCondAndGetValues(cond, actions, conds)
             
-            if cond_type in (pycparser.c_ast.BinaryOp, pycparser.c_ast.UnaryOp):
-                if cond["cond"].op in (">", "<", ">=", "<=", "==", "!="):
-                    conds.append(None)
-                actions.insert(
-                    0,
-                    {
-                        "act_type": self._op_to_code[cond["cond"].op],
-                        "vars": [self.getVarDict(cond["pos"], False)],
-                    },
-                )
-                
-            if cond_type == pycparser.c_ast.FuncCall:
-                if cond["cond"].name.name in self._unary_funcs:
-                    actions.insert(
-                        0,
-                        {
-                            "act_type": cond["cond"].name.name,
-                            "vars": [self.getVarDict(cond["pos"], False)],
-                        },
-                    )
-            action = actions[0]
-
-            values = []
-            if cond_type == pycparser.c_ast.BinaryOp:
-                values = [cond["cond"].left, cond["cond"].right]
-            elif cond_type == pycparser.c_ast.UnaryOp:
-                values = [cond["cond"].expr]
-            elif cond_type == pycparser.c_ast.FuncCall:
-                values = cond["cond"].args.exprs
+            cond_act = actions[0]
 
             for c in values:
                 trans_c = self.transformCond(c)
                 if type(trans_c) in (
                     pycparser.c_ast.Constant,
                     pycparser.c_ast.FuncCall,
-                ) or (type(trans_c) == pycparser.c_ast.UnaryOp and trans_c.op == "-"):
+                ):
                     (vp, iv, var_type) = self.extractVarData(trans_c, inst_vars, False)
-                    
+
                     if vp < 0:
                         conds.append({"pos": vp, "cond": trans_c})
                     elif self.isSrcTypeGreater(var_type, common_type):
                         common_type = var_type
-                    
                 else:
                     vp = self.getNextTempVar()
                     iv = False
                     conds.append({"pos": vp, "cond": trans_c})
-                if cond_type in (pycparser.c_ast.BinaryOp, pycparser.c_ast.UnaryOp, pycparser.c_ast.FuncCall):
-                    action["vars"].append(self.getVarDict(vp, iv))
+                    
+                cond_act["vars"].append(self.getVarDict(vp, iv))
 
         return (var_pos, is_val, actions)
 
-    
-    
+    def processCondAndGetValues(self, cond: dict, actions: list, conds: list):
+        cond_type = type(cond["cond"])
+ 
+        if cond_type in (pycparser.c_ast.BinaryOp, pycparser.c_ast.UnaryOp):
+            if cond["cond"].op in (">", "<", ">=", "<=", "==", "!="):
+                conds.append(None)
+            actions.insert(
+                0,
+                self.getAction(
+                    self._op_to_code[cond["cond"].op],
+                    [self.getVarDict(cond["pos"], False)],
+                ),
+            )
+
+        if cond_type == pycparser.c_ast.FuncCall:
+            if cond["cond"].name.name in self._unary_funcs:
+                actions.insert(
+                    0,
+                    self.getAction(
+                        cond["cond"].name.name,
+                        [self.getVarDict(cond["pos"], False)],
+                    ),
+                )
+        
+        values = []
+        if cond_type == pycparser.c_ast.BinaryOp:
+            values = [cond["cond"].left, cond["cond"].right]
+        elif cond_type == pycparser.c_ast.UnaryOp:
+            values = [cond["cond"].expr]
+        elif cond_type == pycparser.c_ast.FuncCall:
+            values = cond["cond"].args.exprs
+        
+        return values
+
+    def getAction(self, act_type, act_vars):
+        return {
+            "act_type": act_type,
+            "vars": act_vars,
+        }
+
     def transformCond(self, cond):
         res = cond
         if type(cond) == pycparser.c_ast.FuncCall:
-            op_name = cond.name.name.split("__")[0]
-            if op_name == cond.name.name:
+            (op_name, args, transform_to_func) = self.getTransformInfoFromFunc(cond)
+            if op_name is None:
                 return res
-            if op_name in self._code_to_binary_op.keys():
-                op = self._code_to_binary_op[op_name]
-                if op_name in ("NE", "EXPT", "MOD", "DIV", "SUB"):
-                    left = cond.args.exprs[2]
-                    right = cond.args.exprs[3]
-                else:
-                    left = cond.args.exprs[3]
-                    right = cond.args.exprs[4]
-                res = pycparser.c_ast.BinaryOp(op, left, right)
+            
+            if transform_to_func:
+                res = pycparser.c_ast.FuncCall(
+                    pycparser.c_ast.ID(op_name),
+                    pycparser.c_ast.ExprList([cond.args.exprs[2]]),
+                )
+            else:
+                res = pycparser.c_ast.BinaryOp(self._code_to_binary_op[op_name], args[0], args[1])
                 
-            elif op_name in self._unary_funcs:
-                res = pycparser.c_ast.FuncCall(pycparser.c_ast.ID(op_name), pycparser.c_ast.ExprList([cond.args.exprs[2]]))
+        elif type(cond) == pycparser.c_ast.UnaryOp and cond.op == "-":
+            if type(cond.expr) == pycparser.c_ast.Constant:
+                res = pycparser.c_ast.Constant(cond.expr.type, "-" + cond.expr.value)
+            else:
+                res = pycparser.c_ast.FuncCall(
+                    pycparser.c_ast.ID("NEG"),
+                    pycparser.c_ast.ExprList([cond.expr]),
+                )
         elif type(cond) == pycparser.c_ast.TernaryOp:
             res = cond.iffalse
         return res
-    
+
+    def getTransformInfoFromFunc(self, func: pycparser.c_ast.FuncCall) -> tuple:
+        func_name = func.name.name
+        op_name = None
+        transform_to_func = False
+        args = []
+        if func_name in ("__time_add", "__time_sub", "__time_mul", "__time_div"):
+            op_name = "TIME_" + func_name.split("_")[3].upper()
+            args = [func.args.exprs[0], func.args.exprs[1]]
+        else:    
+            op_name = func_name.split("_")[0]
+            if self._code_to_binary_op.get(op_name) is not None:
+                if op_name in ("NE", "EXPT", "MOD", "DIV", "SUB"):
+                    args = [func.args.exprs[2], func.args.exprs[3]]
+                else:
+                    args = [func.args.exprs[3], func.args.exprs[4]]
+            elif op_name in self._unary_funcs:
+                transform_to_func = True
+                args = [func.args.exprs[2]]
+            else:
+                op_name = None
+        
+        return (op_name, args, transform_to_func)
+
     def isDigitType(self, var_type: str) -> bool:
-        return var_type not in ("BOOL", "STRING")
+        return var_type not in ("BOOL", "STRING", "TIME", "DT", "TOD", "DATE", None)
 
     def isUnsignedType(self, var_type: str) -> bool:
         return var_type in (
@@ -729,14 +770,16 @@ class PlcProgramParser:
                     for old, new in old_new_numbers.items():
                         if new == temp["number"]:
                             old_new_numbers[old] = self._predefined_temp_vars.get(
-                        (pred_var_key[0], type_to_fill)
-                    )["number"]
+                                (pred_var_key[0], type_to_fill)
+                            )["number"]
                             is_changed = True
                             break
                     if not is_changed:
-                        old_new_numbers[temp["number"]] = self._predefined_temp_vars.get(
-                        (pred_var_key[0], type_to_fill)
-                    )["number"]
+                        old_new_numbers[temp["number"]] = (
+                            self._predefined_temp_vars.get(
+                                (pred_var_key[0], type_to_fill)
+                            )["number"]
+                        )
 
                     for pred in pred_vars_keys:
                         pred_content = self._predefined_temp_vars.get(pred)
@@ -811,17 +854,10 @@ class PlcProgramParser:
         return var_pos
 
     def extractVarInfoFromExpr(self, expression) -> tuple:
-        is_negative = False
-        if type(expression) == pycparser.c_ast.UnaryOp and expression.op == "-":
-            expression = expression.expr
-            is_negative = True
-            
         if type(expression) == pycparser.c_ast.Constant:
 
             if expression.type == "int":
                 res_value = int(expression.value)
-                if is_negative:
-                    res_value *= -1
                 if res_value >= 0:
                     if res_value <= 2**8 - 1:
                         res_type = "USINT"
@@ -842,8 +878,6 @@ class PlcProgramParser:
                         res_type = "DINT"
             elif expression.type == "double":
                 res_value = float(expression.value)
-                if is_negative:
-                    res_value *= -1
                 if res_value > 3.3e38 or res_value < -3.3e38:
                     res_type = "LREAL"
                 else:
@@ -871,6 +905,7 @@ class PlcProgramParser:
                 )
                 if time_parts[0] < 0:
                     res_value *= -1
+                res_value = (int(res_value), int((res_value - int(res_value)) * 1e9))
             elif expr_name == "__date_to_timespec":
                 res_type = "DATE"
                 date_parts = list(
@@ -878,12 +913,14 @@ class PlcProgramParser:
                 )
                 dt = datetime.datetime(date_parts[2], date_parts[1], date_parts[0])
                 res_value = (dt - datetime.datetime(1970, 1, 1)).total_seconds()
+                res_value = (int(res_value), int((res_value - int(res_value)) * 1e9))
             elif expr_name == "__tod_to_timespec":
                 res_type = "TOD"
                 tod_parts = list(
                     map(lambda const: float(const.value), expression.args.exprs)
                 )
                 res_value = tod_parts[2] * 60 * 60 + tod_parts[1] * 60 + tod_parts[0]
+                res_value = (int(res_value), int((res_value - int(res_value)) * 1e9))
             elif expr_name == "__dt_to_timespec":
                 res_type = "DT"
                 dt_parts = list(
@@ -898,6 +935,7 @@ class PlcProgramParser:
                     dt_parts[0],
                 )
                 res_value = (dt - datetime.datetime(1970, 1, 1)).total_seconds()
+                res_value = (int(res_value), int((res_value - int(res_value)) * 1e9))
             elif expr_name == "__STRING_LITERAL":
                 res_type = "STRING"
                 res_value = expression.args.exprs[1].value[1:-1]
@@ -1014,8 +1052,8 @@ class PlcProgramParser:
         # temp vars count
         header_bytes += struct.pack("<I", self._temp_var_max_pos)
         # ticktime
-        ticktime = defs["TICKTIME"] / 1e9
-        header_bytes += struct.pack("<f", ticktime)
+        ticktime = defs["TICKTIME"]
+        header_bytes += struct.pack("<I", ticktime)
         # instances count
         header_bytes += struct.pack("<I", len(instances))
         # modbus serial
@@ -1033,39 +1071,14 @@ class PlcProgramParser:
             "<I", len(self._predefined_temp_vars.keys())
         )
         for (val, pred_var_type), content in self._predefined_temp_vars.items():
-            (var_len, pack_str) = self.getVarLenAndPackStr(pred_var_type, False, val)
-            type_info = self.var_type_dict[pred_var_type]
-            var_type = type_info["pos"]
-            if pred_var_type == "STRING":
-                val = bytes(val, "utf-8")
-            predefined_vars_bytes += struct.pack(
-                "<BH" + pack_str, var_type, var_len, val
-            )
+            predefined_vars_bytes += self.getVarBytes(pred_var_type, val)
 
         # parse global vars
         global_vars_bytes = struct.pack("<I", len(global_vars.keys()))
         for var_name, content in global_vars.items():
 
-            var_bytes = bytes()
-            pack_str = "<B"
-            type_info = self.var_type_dict[content["type"]]
-            var_type = type_info["pos"]
-
-            var_bytes += struct.pack("<B", var_type)
-
-            init_value = content["init_value"]
-
             # TODO think about arrays
-            if init_value is None:
-                init_value_length = 0
-                var_bytes += struct.pack("<H", init_value_length)
-            else:
-                (init_value_length, pack_str) = self.getVarLenAndPackStr(
-                    content["type"], False, init_value
-                )
-                if content["type"] == "STRING":
-                    init_value = bytes(init_value, "utf-8")
-                var_bytes += struct.pack("<H" + pack_str, init_value_length, init_value)
+            var_bytes = self.getVarBytes(content["type"], content["init_value"])
 
             global_vars_bytes += var_bytes
 
@@ -1106,6 +1119,26 @@ class PlcProgramParser:
         f.write(locations_bytes)
         f.write(tasks_bytes)
         f.close()
+
+    def getVarBytes(self, pred_var_type, val) -> bytes:
+        res = bytes()
+
+        (var_len, pack_str) = self.getVarLenAndPackStr(pred_var_type, False, val)
+        type_info = self.var_type_dict[pred_var_type]
+        var_type = type_info["pos"]
+
+        if val is None:
+            return struct.pack("<BH", var_type, 0)
+
+        if pred_var_type == "STRING":
+            val = bytes(val, "utf-8")
+
+        if isinstance(val, Iterable) and pred_var_type != "STRING":
+            res = struct.pack("<BH" + pack_str, var_type, var_len, *val)
+        else:
+            res = struct.pack("<BH" + pack_str, var_type, var_len, val)
+
+        return res
 
     def getProgramVarsSizeAndCount(self, global_vars: dict, instances: dict) -> tuple:
         (varsSize, varsCount) = self.getInstsVarsSizeAndCount(instances)
@@ -1148,25 +1181,7 @@ class PlcProgramParser:
         for var_name, content in inst["vars"].items():
             if content["visibility"] == "GLOBAL":
                 continue
-            var_bytes = bytes()
-            type_info = self.var_type_dict[content["type"]]
-            var_type = type_info["pos"]
-
-            var_bytes += struct.pack("<B", var_type)
-
-            init_value = content["init_value"]
-
-            # TODO think about arrays
-            if init_value is None:
-                init_value_length = 0
-                var_bytes += struct.pack("<H", init_value_length)
-            else:
-                (init_value_length, pack_str) = self.getVarLenAndPackStr(
-                    content["type"], False, init_value
-                )
-                if content["type"] == "STRING":
-                    init_value = bytes(init_value, "utf-8")
-                var_bytes += struct.pack("<H" + pack_str, init_value_length, init_value)
+            var_bytes = self.getVarBytes(content["type"], content["init_value"])
 
             instance_bytes += var_bytes
         # parse actions into bytes
@@ -1216,41 +1231,46 @@ class PlcProgramParser:
         ):
             return None
 
-        result = ""
+        res_value = ""
 
         re_search = re.search(r"__BOOL_LITERAL\((.*?)\)", str_to_search)
 
         if re_search is not None:
-            result = re_search[1].lower() in "true"
-            return result
+            res_value = re_search[1].lower() in "true"
+            return res_value
 
         re_search = re.search(r"__time_to_timespec\((.*?)\)", str_to_search)
 
         if re_search is not None:
             time_parts = list(map(float, re_search[1].replace(" ", "").split(",")))
-            result = (
+            res_value = (
                 time_parts[1] / 1e3
                 + time_parts[2]
                 + time_parts[3] * 60
                 + time_parts[4] * 60 * 60
                 + time_parts[5] * 60 * 60 * 24
             )
-            return result
+            if time_parts[0] < 0:
+                res_value *= -1
+            res_value = (int(res_value), int((res_value - int(res_value)) * 1e9))
+            return res_value
 
         re_search = re.search(r"__date_to_timespec\((.*?)\)", str_to_search)
 
         if re_search is not None:
             date_parts = list(map(int, re_search[1].replace(" ", "").split(",")))
             dt = datetime.datetime(date_parts[2], date_parts[1], date_parts[0])
-            result = (dt - datetime.datetime(1970, 1, 1)).total_seconds()
-            return result
+            res_value = (dt - datetime.datetime(1970, 1, 1)).total_seconds()
+            res_value = (int(res_value), int((res_value - int(res_value)) * 1e9))
+            return res_value
 
         re_search = re.search(r"__tod_to_timespec\((.*?)\)", str_to_search)
 
         if re_search is not None:
             tod_parts = list(map(float, re_search[1].replace(" ", "").split(",")))
-            result = tod_parts[2] * 60 * 60 + tod_parts[1] * 60 + tod_parts[0]
-            return result
+            res_value = tod_parts[2] * 60 * 60 + tod_parts[1] * 60 + tod_parts[0]
+            res_value = (int(res_value), int((res_value - int(res_value)) * 1e9))
+            return res_value
 
         re_search = re.search(r"__dt_to_timespec\((.*?)\)", str_to_search)
 
@@ -1264,26 +1284,27 @@ class PlcProgramParser:
                 dt_parts[1],
                 dt_parts[0],
             )
-            result = (dt - datetime.datetime(1970, 1, 1)).total_seconds()
-            return result
+            res_value = (dt - datetime.datetime(1970, 1, 1)).total_seconds()
+            res_value = (int(res_value), int((res_value - int(res_value)) * 1e9))
+            return res_value
 
         re_search = re.search(r'__STRING_LITERAL\(.+,"(.*?)"\)', str_to_search)
 
         if re_search is not None:
-            result = re_search[1]
-            return result
+            res_value = re_search[1]
+            return res_value
 
         parts = str_to_search.split(",")
 
         for part in parts:
             part = part.replace(")", "")
             try:
-                result = int(part)
-                return result
+                res_value = int(part)
+                return res_value
             except ValueError:
                 try:
-                    result = float(part)
-                    return result
+                    res_value = float(part)
+                    return res_value
                 except ValueError:
                     None
 
