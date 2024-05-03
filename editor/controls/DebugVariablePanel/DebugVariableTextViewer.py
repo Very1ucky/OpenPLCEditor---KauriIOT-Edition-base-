@@ -175,8 +175,8 @@ class DebugVariableTextViewer(DebugVariableViewer, wx.Panel):
         self.SetMinSize(wx.Size(0, 25))
 
         # Add buttons to Viewer
-        for bitmap, callback in [#("force", self.OnForceButton),
-                                 #("release", self.OnReleaseButton),
+        for bitmap, callback in [("force", self.OnForceButton),
+                                 ("release", self.OnReleaseButton),
                                  ("delete_graph", self.OnCloseButton)]:
             self.Buttons.append(GraphButton(0, 0, bitmap, callback))
 
@@ -212,11 +212,11 @@ class DebugVariableTextViewer(DebugVariableViewer, wx.Panel):
 
         # Update 'Release' button state and text color according to item forced
         # flag value
-        #item_forced = item.IsForced()
-        #self.Buttons[1].Enable(item_forced)
-        #self.RefreshButtonsPosition()
-        #if item_forced:
-        #    gc.SetTextForeground(wx.BLUE)
+        item_forced = item.IsForced()
+        self.Buttons[1].Enable(item_forced)
+        self.RefreshButtonsPosition()
+        if item_forced:
+            gc.SetTextForeground(wx.BLUE)
 
         # Draw item current value at right side of Viewer
         item_value = item.GetValue()

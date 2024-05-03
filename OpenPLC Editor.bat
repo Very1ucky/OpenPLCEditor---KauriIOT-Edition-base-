@@ -8,7 +8,7 @@ if exist .\new_editor\ (
 )
 
 if exist ".\python\.venv\" (
-  start "" ".\python\.venv\Scripts\pythonw.exe" ".\editor\Beremiz.py"
+  start "" ".\python\.venv\Scripts\python.exe" ".\editor\Beremiz.py"
 ) else (
   echo "Setting up python virtual environment..."
   ".\python\python.exe" -m venv ".\python\.venv"

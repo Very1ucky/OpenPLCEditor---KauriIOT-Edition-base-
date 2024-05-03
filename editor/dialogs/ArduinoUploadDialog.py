@@ -512,8 +512,10 @@ class ArduinoUploadDialog(wx.Dialog):
         elif self.com_port_combo.GetValue() in self.com_port_combo_choices:
             port = self.com_port_combo_choices[self.com_port_combo.GetValue()]
         
-        plc_parser = builder.PlcProgramParser()
-        compiler_thread = threading.Thread(target=plc_parser.build, args=(defs, self.plc_program, self.pous_code, self.resource_code, self.resource_name, self.program_list, self.debug_vars_list, port, self.output_text, self.update_subsystem, self.build_path))
+        #plc_parser = builder.PlcProgramParser()
+        #compiler_thread = threading.Thread(target=plc_parser.build, args=(defs, self.plc_program, self.pous_code, self.resource_code, self.resource_name, self.program_list, self.debug_vars_list, port, self.output_text, self.update_subsystem, self.build_path))
+        plc_builder = builder.PlcProgramBuilder()
+        compiler_thread = threading.Thread(target=plc_builder.build, args=(defs, self.resource_name, self.build_path))
         compiler_thread.start()
         compiler_thread.join()
         wx.CallAfter(self.upload_button.Enable, True)   

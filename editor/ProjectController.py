@@ -1142,9 +1142,12 @@ class ProjectController(ConfigTreeNode, PLCControler):
         
         base_folder = paths.AbsDir(__file__)
         loader = FileSystemLoader(
-            os.path.join(base_folder, 'kauri_parser', 'src'))
+            os.path.join(base_folder, 'kauri_parser'))
         template = Environment(loader=loader).get_template('debug.c.j2')
-        cfile = os.path.join(base_folder, 'kauri_parser', 'src', 'debug.c')
+        path = os.path.join(base_folder, 'kauri_parser', 'src', 'Core', 'Generated')
+        if not os.path.exists(path):
+            os.makedirs(path)
+        cfile = os.path.join(path, 'debug.c')
         with open(cfile, 'w') as f:
             f.write(template.render(
                 debug={
@@ -1154,7 +1157,32 @@ class ProjectController(ConfigTreeNode, PLCControler):
                     'types': list(set(a.split("_",1)[0] for a in enums))
                 })
             )
-        return cfile, ''
+            
+        hfile = os.path.join(path, 'debug.h')
+        with open(hfile, 'w') as f:
+            f.write('''#ifndef DEBUG_H
+#define DEBUG_H
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+void set_endianness(uint8_t value);
+
+uint16_t get_var_count(void);
+
+size_t get_var_size(size_t);
+
+void *get_var_addr(size_t);
+
+void force_var(size_t, bool, void *);
+
+void set_trace(size_t, bool, void *);
+
+void trace_reset(void);
+
+#endif''')
+        return cfile, hfile
     
     def Generate_plc_debugger(self):
         """
@@ -1211,7 +1239,8 @@ class ProjectController(ConfigTreeNode, PLCControler):
                        self.LocationCFilesAndCFLAGS if loc and DoCalls]]
 
         # Generate main, based on template
-        if not self.BeremizRoot.getDisable_Extensions():
+        # NOTE: For now the runtime extensions are disabled on OpenPLC as it breaks OpenPLC debugger
+        if False: #not self.BeremizRoot.getDisable_Extensions():
             plc_main_code = targets.GetCode("plc_main_head.c") % {
                 "calls_prototypes": "\n".join([(
                     "int __init_%(s)s(int argc,char **argv);\n" +
@@ -1691,7 +1720,7 @@ class ProjectController(ConfigTreeNode, PLCControler):
                 if len(Traces) > 0:
                     for debug_tick, debug_buff in Traces:
                         debug_vars = UnpackDebugBuffer(
-                            debug_buff, self.TracedIECTypes)
+                            debug_buff, self.TracedIECTypes, self._buildType == 'simulator')
                         if debug_vars is not None:
                             for IECPath, values_buffer, value in zip(
                                     self.TracedIECPath,
@@ -1712,8 +1741,8 @@ class ProjectController(ConfigTreeNode, PLCControler):
                         else:
                             # complain if trace is incomplete, but only once per debug session
                             if self.LastComplainDebugToken != self.DebugToken :
-                                #self.logger.write_warning(
-                                #    _("Debug: target couldn't trace all requested variables.\n"))
+                                self.logger.write_warning(
+                                    _("Debug: target couldn't trace all requested variables.\n"))
                                 self.LastComplainDebugToken = self.DebugToken
 
 
@@ -1975,7 +2004,6 @@ class ProjectController(ConfigTreeNode, PLCControler):
         Stop PLC
         """
         if self._connector is not None and not self._connector.StopPLC():
-            self._connector.DisconnectRemoteTarget()
             self.logger.write_error(_("Couldn't stop PLC !\n"))
 
         self._Disconnect()
