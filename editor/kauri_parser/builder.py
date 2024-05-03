@@ -44,11 +44,11 @@ class PlcProgramBuilder:
 
 #define MD5 "{defs["MD5"]}"
 
-#define MB_SERIAL_EN {'true' if defs["MODBUS_TCP"]["ENABLED"] else 'false'}
+#define MB_SERIAL_EN {'1' if defs["MODBUS_SERIAL"]["ENABLED"] else '0'}
 #define MB_SERIAL_BR {defs["MODBUS_SERIAL"]["BAUD_RATE"]}
 #define MB_SERIAL_SLAVE_ID {defs["MODBUS_SERIAL"]["SLAVE_ID"]}
 
-#define MB_TCP_EN {'true' if defs["MODBUS_TCP"]["ENABLED"] else 'false'}
+#define MB_TCP_EN {'1' if defs["MODBUS_TCP"]["ENABLED"] else '0'}
 #define MB_TCP_MAC {defs["MODBUS_TCP"]["MAC"]}
 #define MB_TCP_IP {defs["MODBUS_TCP"]["IP"]}
 #define MB_TCP_DNS {defs["MODBUS_TCP"]["DNS"]}
