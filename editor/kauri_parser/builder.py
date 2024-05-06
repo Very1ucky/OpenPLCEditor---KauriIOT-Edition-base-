@@ -14,8 +14,6 @@ import util.paths as paths
 
 class PlcProgramBuilder:
     
-    MAX_VAR_ADDR = {"QX":128, "IX":128, "QW":128, "IW":128}
-    
     def scrollToEnd(self, txtCtrl):
         if os_platform.system() != "Darwin":
             txtCtrl.SetInsertionPoint(-1)
@@ -113,8 +111,7 @@ void config_run__(unsigned long tick);
         located_vars_lines = located_vars.splitlines()
         
         
-        glue_vars = f"""
-#include "iec_std_lib.h"
+        glue_vars = """#include "io_vars.h"
 
 #define __LOCATED_VAR(type, name, ...) type __##name;
 #include "LOCATED_VARIABLES.h"
@@ -123,28 +120,19 @@ void config_run__(unsigned long tick);
 #include "LOCATED_VARIABLES.h"
 #undef __LOCATED_VAR
 
-TIME __CURRENT_TIME;
-extern unsigned long long common_ticktime__;
-
-//OpenPLC Buffers
-//Booleans
-IEC_BOOL *IX[{self.MAX_VAR_ADDR["IX"]}];
-IEC_BOOL *QX[{self.MAX_VAR_ADDR["QX"]}];
-IEC_UINT *IW[{self.MAX_VAR_ADDR["IW"]}];
-IEC_UINT *QW[{self.MAX_VAR_ADDR["QW"]}];
-void glueVars()
-{{
 """
+        var_type_to_max_addr = {"IX": 0, "QX": 0, "IW": 0, "QW": 0}
+        loc_vars_init = ""
         for located_var in located_vars_lines:
             #cleanup located var line
             if ('__LOCATED_VAR(' in located_var):
                 located_var = located_var.split('(')[1].split(')')[0]
                 var_data = located_var.split(',')
                 if (len(var_data) < 5):
-                    print('Error processing located var line: ' + located_var)
+                    raise ExtractError('Error processing located var line: ' + located_var)
                 else:
-                    var_type = var_data[0]
                     var_name = var_data[1]
+                    var_type = var_name[2:4]
                     var_address = int(var_data[4])
                     var_subaddress = 0
                     if (len(var_data) > 5):
@@ -153,24 +141,43 @@ void glueVars()
                     else:
                         var_total_addr = var_address
                     if var_subaddress > 7:    
-                        print('Error: wrong location for var ' + var_name)
-                        quit()
-
-                    count = 0
-                    for name, max_val in self.MAX_VAR_ADDR.items():
-                        count += 1
-                        if name in var_name:
-                            if var_total_addr >= max_val:
-                                raise ExtractError('Error: wrong location for var ' + var_name)
-                            glue_vars += f'   {name}[{var_total_addr}] = {var_name};\n'
-                            count = 0
-                            break
-                        if count == 4:
-                            raise ExtractError('Could not process location "' + var_name + '" from line: ' + located_var)
-        glue_vars += "\n}"
+                        raise ExtractError('Error: wrong location for var ' + var_name)
+                    
+                    if var_type_to_max_addr.get(var_type) is None:
+                        raise ExtractError('Could not process location "' + var_name + '" from line: ' + located_var)
+                    else:
+                        loc_vars_init += f'   vars_to_io_linker.{var_type}[{var_total_addr}] = {var_name};\n'
+                        var_type_to_max_addr[var_type] = max(var_type_to_max_addr[var_type], var_total_addr+1)
         
-        with open(os.path.join(path, 'glue_vars.c'), 'w') as f:
+        glue_vars += f'''VarsToIOLinker vars_to_io_linker;
+
+void io_vars_init()
+{{
+{loc_vars_init}
+}}
+        '''        
+        
+        
+        with open(os.path.join(path, 'io_vars.c'), 'w') as f:
             f.write(glue_vars)
+            
+        with open(os.path.join(path, 'io_vars.h'), 'w') as f:
+            f.write(f'''#ifndef IO_VARS_H
+#define GLUE_VARS_H
+
+#include "iec_std_lib.h"
+
+typedef struct {{
+    IEC_BOOL *IX[{var_type_to_max_addr["IX"]}];
+    IEC_BOOL *QX[{var_type_to_max_addr["QX"]}];
+    IEC_UINT *IW[{var_type_to_max_addr["IW"]}];
+    IEC_UINT *QW[{var_type_to_max_addr["QW"]}];
+}} VarsToIOLinker;
+
+void io_vars_init();
+
+#endif
+''')
             
         with open(os.path.join(path, 'LOCATED_VARIABLES.h'), 'w') as f:
             f.write(located_vars)
