@@ -452,8 +452,11 @@ class Beremiz(IDEFrame, LocalRuntimeMixin):
             # commands invoked by build process by default are
             # found here.
             #os.environ["PATH"] = os.getcwd()+';'+os.environ["PATH"]
-            os.environ["PATH"] = os.getcwd()+'\\mingw\\bin;'+os.environ["PATH"]
-
+            #os.environ["PATH"] = os.getcwd()+'\\mingw\\bin;'+os.environ["PATH"]
+            os.environ["PATH"] = os.getcwd() + '\\build_tools\\windows-build-tools\\4.4.1-2.1\\.content\\bin' + ';'
+            os.environ["PATH"] += os.getcwd() + '\\build_tools\\arm-none-eabi-gcc\\13.2.1-1.1.1\\.content\\bin' + ';'
+            os.environ["PATH"] += os.getcwd() + '\\build_tools\\mingw\\bin'
+    
     def __init__(self, parent, projectOpen=None, buildpath=None, ctr=None, debug=True, logf=None):
 
         # Add beremiz's icon in top left corner of the frame

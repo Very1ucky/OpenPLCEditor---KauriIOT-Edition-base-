@@ -1,3 +1,4 @@
+from math import exp
 import os
 import platform as os_platform
 from tarfile import ExtractError
@@ -7,6 +8,8 @@ import socket
 import serial
 
 import wx
+
+import subprocess
 
 
 import util.paths as paths
@@ -31,8 +34,52 @@ class PlcProgramBuilder:
         self,
         defs,
         resource_name,
-        build_path
+        build_path,
+        port,
+        txtCtrl
     ):
+        self.txtCtrl = txtCtrl
+        
+        self._setupSrcFiles(defs, resource_name, build_path)
+        binary_path = self._buildBinary()
+        
+        if port is not None:
+            self._sendFwViaSerial(port, binary_path)
+
+  
+        
+    def _buildBinary(self) -> str:
+        self.outputIntoCompileWindow("Start to build project\n") 
+        make_path = os.path.join(paths.AbsDir(__file__), 'src', 'Core', "STM32Make.make")
+        files_path = os.path.join(paths.AbsDir(__file__), 'src', 'Core')
+        build_command = f"make -C {files_path} -f {make_path}"
+        try:
+            subprocess.check_output(build_command, stderr=subprocess.DEVNULL, shell=True, env=os.environ)
+        except subprocess.CalledProcessError:
+            self.outputIntoCompileWindow("Build failed\n")
+        else:
+            self.outputIntoCompileWindow("Project succesfully build\n")
+        
+        return os.path.join(files_path, 'build', 'PLC_Logic.bin')
+    
+    def _sendFwViaSerial(self, port, fw_path):
+        send_client = ModbusSendClient(
+            modbus_type="RTU", serial_port=port, baudrate=115200, slave_id=1
+        )
+        send_client.connect()
+        f = open(fw_path, "rb")
+        data_byte = f.read(251)
+        send_client._send_modbus_request(103, bytes())
+        while data_byte:
+            send_client._send_modbus_request(102, data_byte)
+            data_byte = f.read(251)
+        f.close()
+        send_client._send_modbus_request(104, bytes())
+        send_client.disconnect()
+
+       
+    def _setupSrcFiles(self, defs, resource_name, build_path):
+        self.outputIntoCompileWindow("Prepearing files for building\n")
         path = os.path.join(paths.AbsDir(__file__), 'src', 'Core', 'Src')
         if not os.path.exists(path):
             os.makedirs(path)
