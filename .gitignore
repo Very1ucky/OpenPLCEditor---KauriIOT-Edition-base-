@@ -141,7 +141,3 @@ dmypy.json
 # custom
 OpenPLC_examples-master/
 .vscode
-editor/kauri_parser/src/Core/Generated/debug.c
-editor/kauri_parser/src/Core/Generated/funcs_to_use.c
-editor/kauri_parser/src/Core/Generated/io_vars.h
-editor/kauri_parser/src/Core/Src/app_conf.h
