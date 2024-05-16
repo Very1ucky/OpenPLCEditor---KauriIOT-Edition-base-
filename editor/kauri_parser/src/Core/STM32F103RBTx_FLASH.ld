@@ -61,8 +61,8 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 /* Specify the memory areas */
 MEMORY
 {
-RAM (xrw)      : ORIGIN = 0x20003000, LENGTH = 7712
-FLASH (rx)      : ORIGIN = 0x800F000, LENGTH = 66560
+RAM (xrw)      : ORIGIN = 0x20003000, LENGTH = 8192
+FLASH (rx)      : ORIGIN = 0x8014000, LENGTH = 49152
 }
 
 /* Define output sections */
@@ -76,10 +76,10 @@ SECTIONS
     . = ALIGN(4);
   } >FLASH
 
-  .utils :
+  .used_funcs_and_structs :
   {
     . = ALIGN(4);
-    KEEP(*(.utils))
+    KEEP(*(.used_funcs_and_structs))
     . = ALIGN(4);
   } >FLASH
 

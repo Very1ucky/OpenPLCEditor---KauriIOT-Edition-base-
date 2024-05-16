@@ -2004,6 +2004,7 @@ void trace_reset(void);
         Stop PLC
         """
         if self._connector is not None and not self._connector.StopPLC():
+            self._connector.DisconnectRemoteTarget()
             self.logger.write_error(_("Couldn't stop PLC !\n"))
 
         self._Disconnect()

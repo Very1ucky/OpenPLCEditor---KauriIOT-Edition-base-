@@ -22,7 +22,7 @@ TARGET = PLC_Logic
 # debug build?
 DEBUG = 1
 # optimization
-OPT = -Og
+OPT = -O0
 
 
 #######################################
@@ -109,7 +109,8 @@ AS_INCLUDES = \
 
 # C includes
 C_INCLUDES =  \
--IGenerated
+-IGenerated   \
+-ISrc
 
 
 

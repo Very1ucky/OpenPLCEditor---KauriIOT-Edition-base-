@@ -232,7 +232,7 @@ class ArduinoUploadDialog(wx.Dialog):
 
         fgSizer2.Add( self.m_staticText10, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
-        serial_iface_comboChoices = [ u"Serial", u"Serial1", u"Serial2", u"Serial3" ]
+        serial_iface_comboChoices = [ u"Serial1", u"Serial2", u"Serial3", u"Serial4" ]
         self.serial_iface_combo = wx.ComboBox( self.m_panel7, wx.ID_ANY, u"Serial", wx.DefaultPosition, wx.DefaultSize, serial_iface_comboChoices, wx.CB_READONLY )
         self.serial_iface_combo.SetSelection( 0 )
         self.serial_iface_combo.SetMinSize( wx.Size( 180,-1 ) )
@@ -532,7 +532,8 @@ class ArduinoUploadDialog(wx.Dialog):
     def generateDefinitionsFile(self) -> dict:
         
         defs_dict = {"MD5": self.md5, 
-                     "MODBUS_SERIAL": {"ENABLED": self.check_modbus_serial.GetValue(), 
+                     "MODBUS_SERIAL": {"ENABLED": self.check_modbus_serial.GetValue(),
+                                       "INTERFACE": str(self.serial_iface_combo.GetValue()[-1]),
                                        "BAUD_RATE": str(self.baud_rate_combo.GetValue()),
                                        "SLAVE_ID": str(self.slaveid_txt.GetValue())}, 
                      "MODBUS_TCP": {"ENABLED": self.check_modbus_tcp.GetValue(),

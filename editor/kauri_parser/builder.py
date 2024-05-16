@@ -44,7 +44,7 @@ class PlcProgramBuilder:
         binary_path = self._buildBinary()
         
         if port is not None:
-            self._sendFwViaSerial(port, binary_path)
+            self._sendFwViaSerial(port, binary_path, defs)
 
   
         
@@ -54,7 +54,7 @@ class PlcProgramBuilder:
         files_path = os.path.join(paths.AbsDir(__file__), 'src', 'Core')
         build_command = f"make -C {files_path} -f {make_path}"
         try:
-            subprocess.check_output(build_command, stderr=subprocess.DEVNULL, shell=True, env=os.environ)
+            subprocess.check_output(build_command, stderr=subprocess.STDOUT, shell=True, env=os.environ)
         except subprocess.CalledProcessError:
             self.outputIntoCompileWindow("Build failed\n")
         else:
@@ -62,19 +62,66 @@ class PlcProgramBuilder:
         
         return os.path.join(files_path, 'build', 'PLC_Logic.bin')
     
-    def _sendFwViaSerial(self, port, fw_path):
+    def _sendFwViaSerial(self, port, fw_path, defs):
+        
+        md5_len = len(defs["MD5"])
+        config_bytes = struct.pack(
+            "<H" + str(md5_len) + "s", md5_len, bytes(defs["MD5"], "utf-8")
+        )
+
+        # modbus serial
+        config_bytes += struct.pack(
+            "<?IB",
+            defs["MODBUS_SERIAL"]["ENABLED"],
+            int(defs["MODBUS_SERIAL"]["BAUD_RATE"]),
+            int(defs["MODBUS_SERIAL"]["SLAVE_ID"]),
+        )
+        # TODO parse another fields of mb tcp
+        config_bytes += struct.pack("<?", defs["MODBUS_TCP"]["ENABLED"])
+
+        
+        
+        func_name_to_code = {"ST_FW_SEND": 102, "SEND_FW_PACKET": 103, "END_FW_SEND": 104}
+        
+        is_error_occured = False
+        
         send_client = ModbusSendClient(
             modbus_type="RTU", serial_port=port, baudrate=115200, slave_id=1
         )
-        send_client.connect()
+        
+        if send_client.connect():
+            self.outputIntoCompileWindow(f"Connected to device from {port}\n")
+        else:
+            self.outputIntoCompileWindow(f"Failed to connect to device from {port}\n")
+            return
+            
         f = open(fw_path, "rb")
-        data_byte = f.read(251)
-        send_client._send_modbus_request(103, bytes())
-        while data_byte:
-            send_client._send_modbus_request(102, data_byte)
-            data_byte = f.read(251)
+        data_byte = f.read(248)
+        send_client.set_timeout(3)
+        resp = send_client._send_modbus_request(func_name_to_code["ST_FW_SEND"], bytes())
+        if resp is None or resp[2+6] != 0:
+            is_error_occured = True
+            self.outputIntoCompileWindow("An error occurred during transmission (failed to initiate sending)\n")
+        send_client.set_timeout(0.1)
+        if not is_error_occured:
+            while data_byte:
+                resp = send_client._send_modbus_request(func_name_to_code["SEND_FW_PACKET"], data_byte)
+                if resp is None or resp[2+6] != 0:
+                    self.outputIntoCompileWindow("An error occurred during transmission\n")
+                    break
+                data_byte = f.read(248)
         f.close()
-        send_client._send_modbus_request(104, bytes())
+        
+        if not is_error_occured:
+            resp = send_client._send_modbus_request(func_name_to_code["END_FW_SEND"], bytes())
+            if resp is not None:
+                self.outputIntoCompileWindow("An error occurred during transmission\n")
+        
+        if not is_error_occured:
+            self.outputIntoCompileWindow("The firmware was successfully loaded\n")
+        else:
+            self.outputIntoCompileWindow("The firmware wasn't loaded\n")
+        
         send_client.disconnect()
 
        
@@ -89,6 +136,7 @@ class PlcProgramBuilder:
 
 #define MD5 "{defs["MD5"]}"
 
+#define MB_SERIAL_IFACE {defs["MODBUS_SERIAL"]["INTERFACE"]}
 #define MB_SERIAL_EN {'1' if defs["MODBUS_SERIAL"]["ENABLED"] else '0'}
 #define MB_SERIAL_BR {defs["MODBUS_SERIAL"]["BAUD_RATE"]}
 #define MB_SERIAL_SLAVE_ID {defs["MODBUS_SERIAL"]["SLAVE_ID"]}
@@ -210,7 +258,7 @@ void io_vars_init()
             
         with open(os.path.join(path, 'io_vars.h'), 'w') as f:
             f.write(f'''#ifndef IO_VARS_H
-#define GLUE_VARS_H
+#define IO_VARS_H
 
 #include "iec_std_lib.h"
 
@@ -781,7 +829,7 @@ class ModbusSendClient:
         self.transaction_id = 0  # Initialize transaction ID
         self.sock = None  # TCP socket
         self.serial = None  # Serial port
-        self.timeout = 5
+        self.timeout = 10
 
     def _increment_transaction_id(self):
         self.transaction_id = (self.transaction_id + 1) % 65536
@@ -913,7 +961,7 @@ class ModbusSendClient:
         elif self.modbus_type == "RTU":
             try:
                 self.serial = serial.Serial(
-                    port=self.serial_port, baudrate=self.baudrate, timeout=0.3
+                    port=self.serial_port, baudrate=self.baudrate, timeout=1.5
                 )
                 time.sleep(2)  # make sure connection happens
             except Exception as e:
@@ -923,6 +971,12 @@ class ModbusSendClient:
 
         return True
 
+    def set_timeout(self, timeout: float):
+        if self.modbus_type == "TCP":
+            self.sock.settimeout(self.timeout)
+        elif self.modbus_type == "RTU":
+            self.serial.timeout = timeout
+    
     def disconnect(self):
         if self.modbus_type == "TCP":
             if self.sock:

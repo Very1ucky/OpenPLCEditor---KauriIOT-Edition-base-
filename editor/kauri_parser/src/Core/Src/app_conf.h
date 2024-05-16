@@ -3,6 +3,7 @@
 
 #define MD5 "210d90f46cccb1828dc2abc567efa966"
 
+#define MB_SERIAL_IFACE 1
 #define MB_SERIAL_EN 1
 #define MB_SERIAL_BR 115200
 #define MB_SERIAL_SLAVE_ID 1
