@@ -49,6 +49,7 @@ import wx
 
 import platform
 
+from dialogs import KauriUploadDialog
 import features
 import connectors
 import util.paths as paths
@@ -60,7 +61,7 @@ from editors.FileManagementPanel import FileManagementPanel
 from editors.ProjectNodeEditor import ProjectNodeEditor
 from editors.IECCodeViewer import IECCodeViewer
 from editors.DebugViewer import DebugViewer, REFRESH_PERIOD
-from dialogs import UriEditor, IDManager, ArduinoUploadDialog, DebuggerRemoteConnDialog
+from dialogs import UriEditor, IDManager, DebuggerRemoteConnDialog
 from PLCControler import PLCControler
 from plcopen.structures import IEC_KEYWORDS
 from plcopen.types_enums import ComputeConfigurationResourceName, ITEM_CONFNODE
@@ -1634,7 +1635,7 @@ void trace_reset(void);
         "_showIDManager": False,
         "_Repair": False,
         "_generateOpenPLC": True,
-        "_generateArduino": True,
+        "_generateKauri": True,
         "_debugPLC"  : True
     }
 
@@ -1645,7 +1646,7 @@ void trace_reset(void);
                                  "_Connect": False,
                                  "_Disconnect": False,
                                  "_generateOpenPLC": True,
-                                 "_generateArduino": True,
+                                 "_generateKauri": True,
                                  "_debugPLC": False},
         PlcStatus.Stopped:      {"_Run": True,
                                  "_Stop": False,
@@ -1654,7 +1655,7 @@ void trace_reset(void);
                                  "_Disconnect": False,
                                  "_Repair": False,
                                  "_generateOpenPLC": True,
-                                 "_generateArduino": True,
+                                 "_generateKauri": True,
                                  "_debugPLC": True},
         PlcStatus.Empty:        {"_Transfer": False,
                                  "_Connect": False,
@@ -1741,8 +1742,8 @@ void trace_reset(void);
                         else:
                             # complain if trace is incomplete, but only once per debug session
                             if self.LastComplainDebugToken != self.DebugToken :
-                                self.logger.write_warning(
-                                    _("Debug: target couldn't trace all requested variables.\n"))
+                                #self.logger.write_warning(
+                                #    _("Debug: target couldn't trace all requested variables.\n"))
                                 self.LastComplainDebugToken = self.DebugToken
 
 
@@ -2229,7 +2230,7 @@ void trace_reset(void);
                     self.logger.write_error(
                         'It was not possible to save the generated program\n')
     
-    def _generateArduino(self):
+    def _generateKauri(self):
         self._Clean()
         self._buildType = "remote"
         if (self._Build() is True):
@@ -2266,7 +2267,7 @@ void trace_reset(void);
             f.close()
             
             self.generate_embed_plc_debugger()
-            dialog = ArduinoUploadDialog.ArduinoUploadDialog(self.AppFrame, program, MD5, pous_file, resource_file, resource_name, self._ProgramList, self._Ticktime, self._DbgVariablesList, self._getBuildPath())
+            dialog = KauriUploadDialog.KauriUploadDialog(self.AppFrame, program, MD5, pous_file, resource_file, resource_name, self._ProgramList, self._Ticktime, self._DbgVariablesList, self._getBuildPath())
             dialog.ShowModal()
 
     def _Repair(self):
@@ -2429,10 +2430,10 @@ void trace_reset(void);
             "shown":      False,
         },
         {
-            "bitmap":    "arduino",
-            "name":    _("Upload Arduino"),
+            "bitmap":    "kauri",
+            "name":    _("Upload Kauri"),
             "tooltip": _("Transfer program to PLC"),
-            "method":   "_generateArduino",
+            "method":   "_generateKauri",
             "shown":      True,
         },
         {

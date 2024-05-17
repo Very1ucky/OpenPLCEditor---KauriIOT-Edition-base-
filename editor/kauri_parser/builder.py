@@ -1,4 +1,3 @@
-from math import exp
 import os
 import platform as os_platform
 from tarfile import ExtractError
@@ -10,6 +9,8 @@ import serial
 import wx
 
 import subprocess
+
+import re
 
 
 import util.paths as paths
@@ -43,8 +44,10 @@ class PlcProgramBuilder:
         self._setupSrcFiles(defs, resource_name, build_path)
         binary_path = self._buildBinary()
         
-        if port is not None:
+        if binary_path is not None and port is not None:
             self._sendFwViaSerial(port, binary_path, defs)
+            
+        self.outputIntoCompileWindow("\n")
 
   
         
@@ -54,11 +57,16 @@ class PlcProgramBuilder:
         files_path = os.path.join(paths.AbsDir(__file__), 'src', 'Core')
         build_command = f"make -C {files_path} -f {make_path}"
         try:
-            subprocess.check_output(build_command, stderr=subprocess.STDOUT, shell=True, env=os.environ)
-        except subprocess.CalledProcessError:
+            res = subprocess.check_output(build_command, stderr=subprocess.STDOUT, shell=True, env=os.environ)
+        except subprocess.CalledProcessError as err:
             self.outputIntoCompileWindow("Build failed\n")
+            self.outputIntoCompileWindow(f"Build output: \n{err.stdout}")
+            return None
         else:
-            self.outputIntoCompileWindow("Project succesfully build\n")
+            res = re.findall(r'B\s+?([.\d]+)\%', res.decode())
+            self.outputIntoCompileWindow("Project successfully build\n")
+            self.outputIntoCompileWindow(f"RAM used: {res[0]}%\n")
+            self.outputIntoCompileWindow(f"FLASH used: {res[1]}%\n")
         
         return os.path.join(files_path, 'build', 'PLC_Logic.bin')
     

@@ -530,7 +530,7 @@ class Beremiz(IDEFrame, LocalRuntimeMixin):
         signal.signal(signal.SIGTERM,self.signalTERM_handler)
 
     def RefreshTitle(self):
-        name = _("OpenPLC Editor")
+        name = _("OpenPLC Editor (Kauri IOT Edition)")
         if self.CTR is not None:
             projectname = self.CTR.GetProjectName()
             if self.CTR.ProjectTestModified():
