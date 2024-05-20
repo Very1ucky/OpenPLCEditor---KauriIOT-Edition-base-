@@ -528,7 +528,7 @@ class KauriUploadDialog(wx.Dialog):
     def startBuilder(self):
 
         # Get platform and source_file from hals
-        board_type = self.board_type_combo.GetValue().split()
+        board_type = self.board_type_combo.GetValue()
         
         defs = self.generateDefinitionsFile()
 

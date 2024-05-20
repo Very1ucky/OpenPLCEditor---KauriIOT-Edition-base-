@@ -42,26 +42,29 @@ class PlcProgramBuilder:
 
     def _buildBinary(self, board_type) -> str:
         self.outputIntoCompileWindow("Start to build project\n")
-        make_path = os.path.join(
-            paths.AbsDir(__file__), "Sources", "PLCSpecified", "KauriPLC", "STM32Make.make"
-        )
-        files_path = os.path.join(paths.AbsDir(__file__), "Sources", "PLCSpecified", "KauriPLC")
-        build_command = f"make -C {files_path} -f {make_path}"
-        try:
-            res = subprocess.check_output(
-                build_command, stderr=subprocess.STDOUT, shell=True, env=os.environ
+        if board_type == "Kauri PLC":
+            make_path = os.path.join(
+                paths.AbsDir(__file__), "Sources", "PLCSpecified", "KauriPLC", "STM32Make.make"
             )
-        except subprocess.CalledProcessError as err:
-            self.outputIntoCompileWindow("Build failed\n")
-            self.outputIntoCompileWindow(f"Build output: \n{err.stdout}")
-            return None
-        else:
-            res = re.findall(r"B\s+?([.\d]+)\%", res.decode())
-            self.outputIntoCompileWindow("Project successfully build\n")
-            self.outputIntoCompileWindow(f"RAM used: {res[0]}%\n")
-            self.outputIntoCompileWindow(f"FLASH used: {res[1]}%\n")
+            files_path = os.path.join(paths.AbsDir(__file__), "Sources", "PLCSpecified", "KauriPLC")
+            build_command = f"make -C {files_path} -f {make_path}"
+            try:
+                res = subprocess.check_output(
+                    build_command, stderr=subprocess.STDOUT, shell=True, env=os.environ
+                )
+            except subprocess.CalledProcessError as err:
+                self.outputIntoCompileWindow("Build failed\n")
+                self.outputIntoCompileWindow(f"Build output: \n{err.stdout}")
+                return None
+            else:
+                res = re.findall(r"B\s+?([.\d]+)\%", res.decode())
+                self.outputIntoCompileWindow("Project successfully build\n")
+                self.outputIntoCompileWindow(f"RAM used: {res[0]}%\n")
+                self.outputIntoCompileWindow(f"FLASH used: {res[1]}%\n")
 
-        return os.path.join(files_path, "build", "PLC_Logic.bin")
+            return os.path.join(files_path, "build", "PLC_Logic.bin")
+        else:
+            return None
 
     def _sendFwViaSerial(self, port, fw_path, defs):
         md5_len = len(defs["MD5"])
