@@ -1145,7 +1145,7 @@ class ProjectController(ConfigTreeNode, PLCControler):
         loader = FileSystemLoader(
             os.path.join(base_folder, 'kauri_parser'))
         template = Environment(loader=loader).get_template('debug.c.j2')
-        path = os.path.join(base_folder, 'kauri_parser', 'src', 'Core', 'Generated')
+        path = os.path.join(base_folder, 'kauri_parser', "Sources", 'Generated')
         if not os.path.exists(path):
             os.makedirs(path)
         cfile = os.path.join(path, 'debug.c')

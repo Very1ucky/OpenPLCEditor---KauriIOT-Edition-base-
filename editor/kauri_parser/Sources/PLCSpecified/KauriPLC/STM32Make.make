@@ -20,7 +20,7 @@ TARGET = PLC_Logic
 # building variables
 ######################################
 # debug build?
-DEBUG = 1
+DEBUG = 0
 # optimization
 OPT = -O3
 
@@ -36,12 +36,12 @@ BUILD_DIR = build
 ######################################
 # C sources
 C_SOURCES =  \
-Generated/Config0.c \
-Generated/POUS.c \
-Generated/debug.c \
-Generated/fdsfdsfds.c \
-Generated/funcs_to_use.c \
-Generated/io_vars.c \
+../../Generated/Config0.c \
+../../Generated/POUS.c \
+../../Generated/debug.c \
+../../Generated/fdsfdsfds.c \
+../../Generated/io_vars.c \
+Src/funcs_to_use.c \
 Src/main.c
 
 
@@ -60,7 +60,7 @@ PREFIX = arm-none-eabi-
 POSTFIX = "
 # The gcc compiler bin path can be either defined in make command via GCC_PATH variable (> make GCC_PATH=xxx)
 # either it can be added to the PATH environment variable.
-GCC_PATH="c:/Users/Daniil/AppData/Roaming/Code/User/globalStorage/bmd.stm32-for-vscode/@xpack-dev-tools/arm-none-eabi-gcc/13.2.1-1.1.1/.content/bin
+# GCC_PATH="arm-none-eabi-
 ifdef GCC_PATH
 CXX = $(GCC_PATH)/$(PREFIX)g++$(POSTFIX)
 CC = $(GCC_PATH)/$(PREFIX)gcc$(POSTFIX)
@@ -109,7 +109,7 @@ AS_INCLUDES = \
 
 # C includes
 C_INCLUDES =  \
--IGenerated   \
+-I../../Generated   \
 -ISrc
 
 
@@ -202,19 +202,7 @@ $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 $(BUILD_DIR):
 	mkdir $@
 
-#######################################
-# flash
-#######################################
-flash: $(BUILD_DIR)/$(TARGET).elf
-	"C:/USERS/DANIIL/APPDATA/ROAMING/CODE/USER/GLOBALSTORAGE/BMD.STM32-FOR-VSCODE/@XPACK-DEV-TOOLS/OPENOCD/0.12.0-2.1/.CONTENT/BIN/OPENOCD.EXE" -f ./openocd.cfg -c "program $(BUILD_DIR)/$(TARGET).elf verify reset exit"
-
-#######################################
-# erase
-#######################################
-erase: $(BUILD_DIR)/$(TARGET).elf
-	"C:/USERS/DANIIL/APPDATA/ROAMING/CODE/USER/GLOBALSTORAGE/BMD.STM32-FOR-VSCODE/@XPACK-DEV-TOOLS/OPENOCD/0.12.0-2.1/.CONTENT/BIN/OPENOCD.EXE" -f ./openocd.cfg -c "init; reset halt; stm32f1x mass_erase 0; exit"
-
-#######################################
+####################################
 # clean up
 #######################################
 clean:

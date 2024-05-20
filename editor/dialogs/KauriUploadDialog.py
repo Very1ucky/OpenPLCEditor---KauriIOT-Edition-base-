@@ -1,8 +1,5 @@
-import re
-import datetime
 import threading
 import serial.tools.list_ports
-from builtins import str as text
 from kauri_parser import builder
 import util.paths as paths
 
@@ -13,8 +10,6 @@ import time
 import os
 import platform
 import json
-import time
-import glob
 
 # -------------------------------------------------------------------------------
 #                            Kauri Upload Dialog
@@ -546,7 +541,7 @@ class KauriUploadDialog(wx.Dialog):
         #plc_parser = builder.PlcProgramParser()
         #compiler_thread = threading.Thread(target=plc_parser.build, args=(defs, self.plc_program, self.pous_code, self.resource_code, self.resource_name, self.program_list, self.debug_vars_list, port, self.output_text, self.update_subsystem, self.build_path))
         plc_builder = builder.PlcProgramBuilder()
-        compiler_thread = threading.Thread(target=plc_builder.build, args=(defs, self.resource_name, self.build_path, port, self.output_text))
+        compiler_thread = threading.Thread(target=plc_builder.build, args=(board_type, defs, self.resource_name, self.build_path, port, self.output_text))
         compiler_thread.start()
         compiler_thread.join()
         wx.CallAfter(self.upload_button.Enable, True)   

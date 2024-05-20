@@ -1,22 +1,20 @@
 import os
 import platform as os_platform
-from tarfile import ExtractError
-import time
-import struct
-import socket
-import serial
-
-import wx
-
-import subprocess
-
 import re
+import socket
+import struct
+import subprocess
+import time
+from tarfile import ExtractError
 
-
+import serial
 import util.paths as paths
+import wx
 
 
 class PlcProgramBuilder:
+    
+    path_to_generated_files = os.path.join(paths.AbsDir(__file__), "Sources", "Generated")
     
     def scrollToEnd(self, txtCtrl):
         if os_platform.system() != "Darwin":
@@ -31,47 +29,41 @@ class PlcProgramBuilder:
         wx.CallAfter(self.txtCtrl.AppendText, str)
         wx.CallAfter(self.scrollToEnd, self.txtCtrl)
 
-    def build(
-        self,
-        defs,
-        resource_name,
-        build_path,
-        port,
-        txtCtrl
-    ):
+    def build(self, board_type, defs, resource_name, build_path, port, txtCtrl):
         self.txtCtrl = txtCtrl
-        
+
         self._setupSrcFiles(defs, resource_name, build_path)
-        binary_path = self._buildBinary()
-        
+        binary_path = self._buildBinary(board_type)
+
         if binary_path is not None and port is not None:
             self._sendFwViaSerial(port, binary_path, defs)
-            
+
         self.outputIntoCompileWindow("\n")
 
-  
-        
-    def _buildBinary(self) -> str:
-        self.outputIntoCompileWindow("Start to build project\n") 
-        make_path = os.path.join(paths.AbsDir(__file__), 'src', 'Core', "STM32Make.make")
-        files_path = os.path.join(paths.AbsDir(__file__), 'src', 'Core')
+    def _buildBinary(self, board_type) -> str:
+        self.outputIntoCompileWindow("Start to build project\n")
+        make_path = os.path.join(
+            paths.AbsDir(__file__), "Sources", "PLCSpecified", "KauriPLC", "STM32Make.make"
+        )
+        files_path = os.path.join(paths.AbsDir(__file__), "Sources", "PLCSpecified", "KauriPLC")
         build_command = f"make -C {files_path} -f {make_path}"
         try:
-            res = subprocess.check_output(build_command, stderr=subprocess.STDOUT, shell=True, env=os.environ)
+            res = subprocess.check_output(
+                build_command, stderr=subprocess.STDOUT, shell=True, env=os.environ
+            )
         except subprocess.CalledProcessError as err:
             self.outputIntoCompileWindow("Build failed\n")
             self.outputIntoCompileWindow(f"Build output: \n{err.stdout}")
             return None
         else:
-            res = re.findall(r'B\s+?([.\d]+)\%', res.decode())
+            res = re.findall(r"B\s+?([.\d]+)\%", res.decode())
             self.outputIntoCompileWindow("Project successfully build\n")
             self.outputIntoCompileWindow(f"RAM used: {res[0]}%\n")
             self.outputIntoCompileWindow(f"FLASH used: {res[1]}%\n")
-        
-        return os.path.join(files_path, 'build', 'PLC_Logic.bin')
-    
+
+        return os.path.join(files_path, "build", "PLC_Logic.bin")
+
     def _sendFwViaSerial(self, port, fw_path, defs):
-        
         md5_len = len(defs["MD5"])
         config_bytes = struct.pack(
             "<H" + str(md5_len) + "s", md5_len, bytes(defs["MD5"], "utf-8")
@@ -87,59 +79,88 @@ class PlcProgramBuilder:
         # TODO parse another fields of mb tcp
         config_bytes += struct.pack("<?", defs["MODBUS_TCP"]["ENABLED"])
 
-        
-        
-        func_name_to_code = {"ST_FW_SEND": 102, "SEND_FW_PACKET": 103, "END_FW_SEND": 104}
-        
+        func_name_to_code = {
+            "ST_FW_SEND": 102,
+            "SEND_FW_PACKET": 103,
+            "END_FW_SEND": 104,
+        }
+
         is_error_occured = False
-        
+
         send_client = ModbusSendClient(
             modbus_type="RTU", serial_port=port, baudrate=115200, slave_id=1
         )
-        
+
         if send_client.connect():
             self.outputIntoCompileWindow(f"Connected to device from {port}\n")
         else:
             self.outputIntoCompileWindow(f"Failed to connect to device from {port}\n")
             return
-            
+
         f = open(fw_path, "rb")
         data_byte = f.read(248)
         send_client.set_timeout(3)
-        resp = send_client._send_modbus_request(func_name_to_code["ST_FW_SEND"], bytes())
-        if resp is None or resp[2+6] != 0:
+        resp = send_client._send_modbus_request(
+            func_name_to_code["ST_FW_SEND"], bytes()
+        )
+        if resp is None or resp[2 + 6] != 0:
             is_error_occured = True
-            self.outputIntoCompileWindow("An error occurred during transmission (failed to initiate sending)\n")
+            self.outputIntoCompileWindow(
+                "An error occurred during transmission (failed to initiate sending)\n"
+            )
         send_client.set_timeout(0.1)
         if not is_error_occured:
             while data_byte:
-                resp = send_client._send_modbus_request(func_name_to_code["SEND_FW_PACKET"], data_byte)
-                if resp is None or resp[2+6] != 0:
-                    self.outputIntoCompileWindow("An error occurred during transmission\n")
+                resp = send_client._send_modbus_request(
+                    func_name_to_code["SEND_FW_PACKET"], data_byte
+                )
+                if resp is None or resp[2 + 6] != 0:
+                    self.outputIntoCompileWindow(
+                        "An error occurred during transmission\n"
+                    )
                     break
                 data_byte = f.read(248)
         f.close()
-        
+
         if not is_error_occured:
-            resp = send_client._send_modbus_request(func_name_to_code["END_FW_SEND"], bytes())
+            resp = send_client._send_modbus_request(
+                func_name_to_code["END_FW_SEND"], bytes()
+            )
             if resp is not None:
                 self.outputIntoCompileWindow("An error occurred during transmission\n")
-        
+
         if not is_error_occured:
             self.outputIntoCompileWindow("The firmware was successfully loaded\n")
         else:
             self.outputIntoCompileWindow("The firmware wasn't loaded\n")
-        
+
         send_client.disconnect()
 
-       
     def _setupSrcFiles(self, defs, resource_name, build_path):
+        
+        gen_path = self.path_to_generated_files
+        try:
+            os.remove(os.path.join(gen_path, "app_conf.h"))
+            os.remove(os.path.join(gen_path, f"{resource_name}.c"))
+            os.remove(os.path.join(gen_path, f"{resource_name}.h"))
+            os.remove(os.path.join(gen_path, "Config0.c"))
+            os.remove(os.path.join(gen_path, "Config0.h"))
+            os.remove(os.path.join(gen_path, "LOCATED_VARIABLES.h"))
+            os.remove(os.path.join(gen_path, "io_vars.c"))
+            os.remove(os.path.join(gen_path, "io_vars.h"))
+            os.remove(os.path.join(gen_path, "POUS.h"))
+            os.remove(os.path.join(gen_path, "POUS.c"))
+        except FileNotFoundError:
+            pass
+        
         self.outputIntoCompileWindow("Prepearing files for building\n")
-        path = os.path.join(paths.AbsDir(__file__), 'src', 'Core', 'Src')
-        if not os.path.exists(path):
-            os.makedirs(path)
-        with open(os.path.join(path, 'app_conf.h'), 'w') as f:
-            f.write(f'''#ifndef APP_CONF_H
+        
+        if not os.path.exists(gen_path):
+            os.makedirs(gen_path)
+            
+        with open(os.path.join(gen_path, "app_conf.h"), "w") as f:
+            f.write(
+                f"""#ifndef APP_CONF_H
 #define APP_CONF_H
 
 #define MD5 "{defs["MD5"]}"
@@ -158,62 +179,63 @@ class PlcProgramBuilder:
 #define MB_TCP_SSID {defs["MODBUS_TCP"]["SSID"]}
 #define MB_TCP_PWD {defs["MODBUS_TCP"]["PWD"]}
 
-#endif''')
-            
-        path = os.path.join(paths.AbsDir(__file__), 'src', 'Core', 'Generated')
-        if not os.path.exists(path):
-            os.makedirs(path)
-        res_file = open(os.path.join(build_path, f'{resource_name}.c'), 'r')
-        res_file_code =  res_file.read()
+#endif"""
+            )
+
+        res_file = open(os.path.join(build_path, f"{resource_name}.c"), "r")
+        res_file_code = res_file.read()
         res_file.close()
-        
+
         lines = res_file_code.splitlines()
-        lines[4] = f"#include \"{resource_name}.h\""
+        lines[4] = f'#include "{resource_name}.h"'
         res_file_code = ""
         for line in lines:
             if "POUS.c" not in line:
                 res_file_code += line + "\n"
-            
-        with open(os.path.join(path, f'{resource_name}.c'), 'w') as f:
+
+        with open(os.path.join(gen_path, f"{resource_name}.c"), "w") as f:
             f.write(res_file_code)
-            
-        with open(os.path.join(path, f'{resource_name}.h'), 'w') as f:
-            f.write(f'''#ifndef {resource_name.upper()}_H
+
+        with open(os.path.join(gen_path, f"{resource_name}.h"), "w") as f:
+            f.write(
+                f"""#ifndef {resource_name.upper()}_H
 #define {resource_name.upper()}_H
             
 void {resource_name.upper()}_init__(void);
             
 void {resource_name.upper()}_run__(unsigned long tick);
             
-#endif''')
-            
-        config_file = open(os.path.join(build_path, 'Config0.c'), 'r')
-        config_file_code =  config_file.read()
+#endif"""
+            )
+
+        config_file = open(os.path.join(build_path, "Config0.c"), "r")
+        config_file_code = config_file.read()
         config_file.close()
-        
+
         lines = config_file_code.splitlines()
-        lines[4] = "#include \"Config0.h\""
+        lines[4] = '#include "Config0.h"'
         config_file_code = ""
         for line in lines:
             config_file_code += line + "\n"
-            
-        with open(os.path.join(path, 'Config0.c'), 'w') as f:
-            f.write(config_file_code) 
-            
-        with open(os.path.join(path, 'Config0.h'), 'w') as f:
-            f.write('''#ifndef CONFIG0_H
+
+        with open(os.path.join(gen_path, "Config0.c"), "w") as f:
+            f.write(config_file_code)
+
+        with open(os.path.join(gen_path, "Config0.h"), "w") as f:
+            f.write(
+                """#ifndef CONFIG0_H
 #define CONFIG0_H
 
 void config_init__(void);
 void config_run__(unsigned long tick);
 
-#endif''')
-            
-        located_vars_file = open(os.path.join(build_path, 'LOCATED_VARIABLES.h'), 'r')
+#endif"""
+            )
+
+        located_vars_file = open(os.path.join(build_path, "LOCATED_VARIABLES.h"), "r")
         located_vars = located_vars_file.read()
         located_vars_lines = located_vars.splitlines()
-        
-        
+
         glue_vars = """#include "io_vars.h"
 
 #define __LOCATED_VAR(type, name, ...) type __##name;
@@ -227,45 +249,54 @@ void config_run__(unsigned long tick);
         var_type_to_max_addr = {"IX": 0, "QX": 0, "IW": 0, "QW": 0}
         loc_vars_init = ""
         for located_var in located_vars_lines:
-            #cleanup located var line
-            if ('__LOCATED_VAR(' in located_var):
-                located_var = located_var.split('(')[1].split(')')[0]
-                var_data = located_var.split(',')
-                if (len(var_data) < 5):
-                    raise ExtractError('Error processing located var line: ' + located_var)
+            # cleanup located var line
+            if "__LOCATED_VAR(" in located_var:
+                located_var = located_var.split("(")[1].split(")")[0]
+                var_data = located_var.split(",")
+                if len(var_data) < 5:
+                    raise ExtractError(
+                        "Error processing located var line: " + located_var
+                    )
                 else:
                     var_name = var_data[1]
                     var_type = var_name[2:4]
                     var_address = int(var_data[4])
                     var_subaddress = 0
-                    if (len(var_data) > 5):
+                    if len(var_data) > 5:
                         var_subaddress = int(var_data[5])
                         var_total_addr = var_address * 8 + var_subaddress
                     else:
                         var_total_addr = var_address
-                    if var_subaddress > 7:    
-                        raise ExtractError('Error: wrong location for var ' + var_name)
-                    
+                    if var_subaddress > 7:
+                        raise ExtractError("Error: wrong location for var " + var_name)
+
                     if var_type_to_max_addr.get(var_type) is None:
-                        raise ExtractError('Could not process location "' + var_name + '" from line: ' + located_var)
+                        raise ExtractError(
+                            'Could not process location "'
+                            + var_name
+                            + '" from line: '
+                            + located_var
+                        )
                     else:
-                        loc_vars_init += f'   vars_to_io_linker.{var_type}[{var_total_addr}] = {var_name};\n'
-                        var_type_to_max_addr[var_type] = max(var_type_to_max_addr[var_type], var_total_addr+1)
-        
-        glue_vars += f'''VarsToIOLinker vars_to_io_linker;
+                        loc_vars_init += f"   vars_to_io_linker.{var_type}[{var_total_addr}] = {var_name};\n"
+                        var_type_to_max_addr[var_type] = max(
+                            var_type_to_max_addr[var_type], var_total_addr + 1
+                        )
+
+        glue_vars += f"""VarsToIOLinker vars_to_io_linker;
 
 void io_vars_init()
 {{
 {loc_vars_init}
 }}
-        '''        
-        
-        
-        with open(os.path.join(path, 'io_vars.c'), 'w') as f:
+        """
+
+        with open(os.path.join(gen_path, "io_vars.c"), "w") as f:
             f.write(glue_vars)
-            
-        with open(os.path.join(path, 'io_vars.h'), 'w') as f:
-            f.write(f'''#ifndef IO_VARS_H
+
+        with open(os.path.join(gen_path, "io_vars.h"), "w") as f:
+            f.write(
+                f"""#ifndef IO_VARS_H
 #define IO_VARS_H
 
 #include "iec_std_lib.h"
@@ -280,24 +311,26 @@ typedef struct {{
 void io_vars_init();
 
 #endif
-''')
-            
-        with open(os.path.join(path, 'LOCATED_VARIABLES.h'), 'w') as f:
+"""
+            )
+
+        with open(os.path.join(gen_path, "LOCATED_VARIABLES.h"), "w") as f:
             f.write(located_vars)
-        
-        with open(os.path.join(build_path, 'POUS.h'), 'r') as f:
+
+        with open(os.path.join(build_path, "POUS.h"), "r") as f:
             pous_code_h = f.read()
-        pous_code_h = pous_code_h.replace("#include \"beremiz.h\"", "")
-        
-        with open(os.path.join(path, 'POUS.h'), 'w') as f:
+        pous_code_h = pous_code_h.replace('#include "beremiz.h"', "")
+
+        with open(os.path.join(gen_path, "POUS.h"), "w") as f:
             f.write(pous_code_h)
-        
-        with open(os.path.join(build_path, 'POUS.c'), 'r') as f:
+
+        with open(os.path.join(build_path, "POUS.c"), "r") as f:
             pous_code_c = f.read()
-        pous_code_c = "#include \"POUS.h\"\n\n" + pous_code_c
-        
-        with open(os.path.join(path, 'POUS.c'), 'w') as f:
+        pous_code_c = '#include "POUS.h"\n\n' + pous_code_c
+
+        with open(os.path.join(gen_path, "POUS.c"), "w") as f:
             f.write(pous_code_c)
+
 
 class ModbusSendClient:
     # Table of CRC values for high-order byte
@@ -984,7 +1017,7 @@ class ModbusSendClient:
             self.sock.settimeout(self.timeout)
         elif self.modbus_type == "RTU":
             self.serial.timeout = timeout
-    
+
     def disconnect(self):
         if self.modbus_type == "TCP":
             if self.sock:
