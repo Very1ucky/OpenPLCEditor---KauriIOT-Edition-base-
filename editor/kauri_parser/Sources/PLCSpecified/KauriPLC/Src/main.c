@@ -10,7 +10,9 @@ const config conf = {.md5_len = strlen(md5),
                     .serial_interface = MB_SERIAL_IFACE,
                     .slave_id = MB_SERIAL_SLAVE_ID,
                     .baudrate = MB_SERIAL_BR,
-                    .is_mb_tcp_enabled = MB_TCP_EN
+                    .is_mb_tcp_enabled = MB_TCP_EN,
+                    .is_ser_prog_en = MB_SERIAL_IS_PROG_EN,
+                    .is_ser_deb_en = MB_SERIAL_IS_DEB_EN,
                     };
 
 void main() {

@@ -2257,17 +2257,11 @@ void trace_reset(void);
             f = open(self._getIECgeneratedcodepath(), 'r')
             program = f.read()
             f.close()
-            f = open(os.path.join(self._getBuildPath(), "POUS.c"), 'r')
-            pous_file = f.read()
-            f.close()
             
             resource_name = re.search("RESOURCE (.*) ON PLC", program)[1]
-            f = open(os.path.join(self._getBuildPath(), f"{resource_name}.c"), 'r')
-            resource_file = f.read()
-            f.close()
             
             self.generate_embed_plc_debugger()
-            dialog = KauriUploadDialog.KauriUploadDialog(self.AppFrame, program, MD5, pous_file, resource_file, resource_name, self._ProgramList, self._Ticktime, self._DbgVariablesList, self._getBuildPath())
+            dialog = KauriUploadDialog.KauriUploadDialog(self.AppFrame, MD5, resource_name, self._Ticktime, self._getBuildPath())
             dialog.ShowModal()
 
     def _Repair(self):

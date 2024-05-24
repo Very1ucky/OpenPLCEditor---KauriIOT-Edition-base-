@@ -172,6 +172,8 @@ class PlcProgramBuilder:
 #define MB_SERIAL_EN {'1' if defs["MODBUS_SERIAL"]["ENABLED"] else '0'}
 #define MB_SERIAL_BR {defs["MODBUS_SERIAL"]["BAUD_RATE"]}
 #define MB_SERIAL_SLAVE_ID {defs["MODBUS_SERIAL"]["SLAVE_ID"]}
+#define MB_SERIAL_IS_PROG_EN {'1' if defs["MODBUS_SERIAL"]["IS_PROG_EN"] else '0'}
+#define MB_SERIAL_IS_DEB_EN {'1' if defs["MODBUS_SERIAL"]["IS_DEB_EN"] else '0'}
 
 #define MB_TCP_EN {'1' if defs["MODBUS_TCP"]["ENABLED"] else '0'}
 #define MB_TCP_MAC {defs["MODBUS_TCP"]["MAC"]}

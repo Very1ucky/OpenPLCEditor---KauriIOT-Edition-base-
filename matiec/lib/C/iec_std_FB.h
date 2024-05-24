@@ -1889,13 +1889,6 @@ __end:
 } // SEMA_body__() 
 
 
-#include "arduino_lib_FB.h"
-#include "p1am_FB.h"
-#include "communication.h"
+#include "TCP_commun.h"
 
-
-#include "MQTT.h"
-#include "sm_cards.h"
-#include "jaguar.h"
-#include "SL-RP4.h"
 #endif //_IEC_STD_FB_H

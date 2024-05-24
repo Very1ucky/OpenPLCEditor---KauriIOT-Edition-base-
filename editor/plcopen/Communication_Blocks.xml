@@ -22,10 +22,10 @@
           <inputVars>
             <variable name="CONNECT"><type><BOOL/></type></variable>
             <variable name="IP_ADDRESS"><type><string/></type></variable>
-            <variable name="PORT"><type><INT/></type></variable>
+            <variable name="PORT"><type><UINT/></type></variable>
           </inputVars>
           <outputVars>
-            <variable name="SOCKET_ID"><type><INT/></type></variable>
+            <variable name="SOCKET_ID"><type><UINT/></type></variable>
           </outputVars>
         </interface>
         <body>
@@ -41,11 +41,11 @@
         <interface>
           <inputVars>
             <variable name="SEND"><type><BOOL/></type></variable>
-            <variable name="SOCKET_ID"><type><INT/></type></variable>
+            <variable name="SOCKET_ID"><type><UINT/></type></variable>
             <variable name="MSG"><type><string/></type></variable>
           </inputVars>
           <outputVars>
-            <variable name="BYTES_SENT"><type><INT/></type></variable>
+            <variable name="BYTES_SENT"><type><UINT/></type></variable>
           </outputVars>
         </interface>
         <body>
@@ -61,10 +61,10 @@
         <interface>
           <inputVars>
             <variable name="RECEIVE"><type><BOOL/></type></variable>
-            <variable name="SOCKET_ID"><type><INT/></type></variable>
+            <variable name="SOCKET_ID"><type><UINT/></type></variable>
           </inputVars>
           <outputVars>
-            <variable name="BYTES_RECEIVED"><type><INT/></type></variable>
+            <variable name="BYTES_RECEIVED"><type><UINT/></type></variable>
             <variable name="MSG"><type><string/></type></variable>
           </outputVars>
         </interface>
@@ -81,7 +81,7 @@
         <interface>
           <inputVars>
             <variable name="CLOSE"><type><BOOL/></type></variable>
-            <variable name="SOCKET_ID"><type><INT/></type></variable>
+            <variable name="SOCKET_ID"><type><UINT/></type></variable>
           </inputVars>
           <outputVars>
             <variable name="SUCCESS"><type><INT/></type></variable>

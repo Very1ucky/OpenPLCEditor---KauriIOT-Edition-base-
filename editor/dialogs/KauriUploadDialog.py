@@ -18,21 +18,16 @@ import json
 class KauriUploadDialog(wx.Dialog):
     """Dialog to configure upload parameters"""
 
-    def __init__(self, parent, st_code, md5, pous_code, resource_code, resource_name, program_list, ticktime, debug_vars_list, build_path):
+    def __init__(self, parent, md5, resource_name, ticktime, build_path):
         """ 
         Constructor
         @param parent: Parent wx.Window of dialog for modal
         @param st_code: Compiled PLC program as ST code.
         """
         self.build_path = build_path
-        self.pous_code = pous_code
-        self.resource_code = resource_code
-        self.program_list = program_list
         self.ticktime = ticktime
-        self.debug_vars_list = debug_vars_list
         self.resource_name = resource_name
         
-        self.plc_program = st_code
         self.md5 = md5
         self.last_update = 0
         self.update_subsystem = True
@@ -144,40 +139,6 @@ class KauriUploadDialog(wx.Dialog):
         self.m_panel6 = wx.Panel( self.m_listbook2, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
         bSizer3 = wx.BoxSizer( wx.VERTICAL )
 
-        #self.m_staticText4 = wx.StaticText( self.m_panel6, wx.ID_ANY, u"This setting will allow you to change the default pin mapping for your board. Please be cautious while edditing, as mistakes can lead to compilation errors. Pin numbers should obey the Arduino notation for your board and must be comma-separated.", wx.DefaultPosition, wx.DefaultSize, 0 )
-        #self.m_staticText4.Wrap( 530 )
-        #self.m_staticText4.SetMinSize( wx.Size( -1,60 ) )
-
-        #bSizer3.Add( self.m_staticText4, 0, wx.ALL, 5 )
-
-        #self.m_staticText5 = wx.StaticText( self.m_panel6, wx.ID_ANY, u"Digital Inputs", wx.DefaultPosition, wx.DefaultSize, 0 )
-        #self.m_staticText5.Wrap( -1 )
-        #bSizer3.Add( self.m_staticText5, 0, wx.ALL, 5 )
-
-        #self.din_txt = wx.TextCtrl( self.m_panel6, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        #bSizer3.Add( self.din_txt, 0, wx.ALL|wx.EXPAND, 5 )
-
-        #self.m_staticText6 = wx.StaticText( self.m_panel6, wx.ID_ANY, u"Digital Outputs", wx.DefaultPosition, wx.DefaultSize, 0 )
-        #self.m_staticText6.Wrap( -1 )
-        #bSizer3.Add( self.m_staticText6, 0, wx.ALL, 5 )
-
-        #self.dout_txt = wx.TextCtrl( self.m_panel6, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        #bSizer3.Add( self.dout_txt, 0, wx.ALL|wx.EXPAND, 5 )
-
-        #self.m_staticText7 = wx.StaticText( self.m_panel6, wx.ID_ANY, u"Analog Inputs", wx.DefaultPosition, wx.DefaultSize, 0 )
-        #self.m_staticText7.Wrap( -1 )
-        #bSizer3.Add( self.m_staticText7, 0, wx.ALL, 5 )
-
-        #self.ain_txt = wx.TextCtrl( self.m_panel6, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        #bSizer3.Add( self.ain_txt, 0, wx.ALL|wx.EXPAND, 5 )
-
-        #self.m_staticText8 = wx.StaticText( self.m_panel6, wx.ID_ANY, u"Analog Outputs", wx.DefaultPosition, wx.DefaultSize, 0 )
-        #self.m_staticText8.Wrap( -1 )
-        #bSizer3.Add( self.m_staticText8, 0, wx.ALL, 5 )
-
-        #self.aout_txt = wx.TextCtrl( self.m_panel6, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        #bSizer3.Add( self.aout_txt, 0, wx.ALL|wx.EXPAND, 5 )
-
         self.m_staticText9 = wx.StaticText( self.m_panel6, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText9.Wrap( -1 )
         self.m_staticText9.SetMinSize( wx.Size( -1,40 ) )
@@ -186,32 +147,12 @@ class KauriUploadDialog(wx.Dialog):
 
         gSizer1 = wx.GridSizer( 0, 2, 0, 0 )
 
-        #self.m_button2 = wx.Button( self.m_panel6, wx.ID_ANY, u"Restore Defaults", wx.DefaultPosition, wx.DefaultSize, 0 )
-        #self.m_button2.SetMinSize( wx.Size( 150,30 ) )
-        #self.m_button2.Bind(wx.EVT_BUTTON, self.restoreIODefaults)
-
-        #gSizer1.Add( self.m_button2, 0, wx.ALIGN_CENTER|wx.ALL, 5 )
-
-        #self.m_button3 = wx.Button( self.m_panel6, wx.ID_ANY, u"Save Changes", wx.DefaultPosition, wx.DefaultSize, 0 )
-        #self.m_button3.SetMinSize( wx.Size( 150,30 ) )
-        #self.m_button3.Bind(wx.EVT_BUTTON, self.saveIO)
-
-        #gSizer1.Add( self.m_button3, 0, wx.ALIGN_CENTER|wx.ALL, 5 )
-
-
         bSizer3.Add( gSizer1, 1, wx.EXPAND, 5 )
 
 
         self.m_panel6.SetSizer( bSizer3 )
         self.m_panel6.Layout()
         bSizer3.Fit( self.m_panel6 )
-        
-        #self.m_listbook2.AddPage( self.m_panel6, u"I/O Config", False )
-        #m_listbook2Bitmap = wx.Bitmap(os.path.join(current_dir, "..", "images", "io.png"), wx.BITMAP_TYPE_ANY )
-        #if ( m_listbook2Bitmap.IsOk() ):
-        #    m_listbook2Images.Add( m_listbook2Bitmap )
-        #    self.m_listbook2.SetPageImage( m_listbook2Index, m_listbook2Index )
-        #    m_listbook2Index += 1
 
         self.m_panel7 = wx.Panel( self.m_listbook2, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
         bSizer4 = wx.BoxSizer( wx.VERTICAL )
@@ -262,19 +203,11 @@ class KauriUploadDialog(wx.Dialog):
 
         fgSizer2.Add( self.slaveid_txt, 0, wx.ALL, 5 )
 
-        #self.m_staticText13 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"Enable programming:", wx.DefaultPosition, wx.Size( -1,-1 ), 0 )
-        #self.m_staticText13.Wrap( -1 )
-        #self.m_staticText13.SetMinSize( wx.Size( 60,-1 ) )
-
-        #fgSizer2.Add( self.m_staticText13, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-
-        self.enable_programming = wx.CheckBox( self.m_panel7, wx.ID_ANY, u"Enable programming", wx.DefaultPosition, wx.DefaultSize, 0 )
-        fgSizer2.Add( self.enable_programming, 0, wx.ALL, 5 )
-
-        #self.txpin_txt = wx.TextCtrl( self.m_panel7, wx.ID_ANY, u"-1", wx.DefaultPosition, wx.DefaultSize, 0 )
-        #self.txpin_txt.SetMinSize( wx.Size( 180,-1 ) )
-
-        #fgSizer2.Add( self.txpin_txt, 0, wx.ALL, 5 )
+        self.serial_enable_programming = wx.CheckBox( self.m_panel7, wx.ID_ANY, u"Enable programming", wx.DefaultPosition, wx.DefaultSize, 0 )
+        fgSizer2.Add( self.serial_enable_programming, 0, wx.ALL, 5 )
+        
+        self.serial_enable_debugging = wx.CheckBox( self.m_panel7, wx.ID_ANY, u"Enable debugging", wx.DefaultPosition, wx.DefaultSize, 0 )
+        fgSizer2.Add( self.serial_enable_debugging, 0, wx.ALL, 5 )
 
         self.m_staticText23 = wx.StaticText( self.m_panel7, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText23.Wrap( -1 )
@@ -468,20 +401,22 @@ class KauriUploadDialog(wx.Dialog):
             self.serial_iface_combo.Enable(False)
             self.baud_rate_combo.Enable(False)
             self.slaveid_txt.Enable(False)
-            self.enable_programming.Enable(False)
+            self.serial_enable_programming.Enable(False)
+            self.serial_enable_debugging.Enable(False)
         elif (self.check_modbus_serial.GetValue() is True):
             self.serial_iface_combo.Enable(True)
             if self.serial_iface_combo.GetValue() == u"Serial1":
                 self.baud_rate_combo.Enable(False)
                 self.slaveid_txt.Enable(False)
-                self.enable_programming.Enable(False)
-                self.enable_programming.SetValue(True)
+                self.serial_enable_programming.Enable(False)
+                self.serial_enable_programming.SetValue(True)
                 self.baud_rate_combo.SetValue(u"115200")
                 self.slaveid_txt.SetLabelText(u"1")
             else:
                 self.baud_rate_combo.Enable(True)
                 self.slaveid_txt.Enable(True)
-                self.enable_programming.Enable(True)
+                self.serial_enable_programming.Enable(True)
+            self.serial_enable_debugging.Enable(True)
 
         if (self.check_compile.GetValue() is False):
             self.com_port_combo.Enable(True)
@@ -561,7 +496,9 @@ class KauriUploadDialog(wx.Dialog):
                      "MODBUS_SERIAL": {"ENABLED": self.check_modbus_serial.GetValue(),
                                        "INTERFACE": str(self.serial_iface_combo.GetValue()[-1]),
                                        "BAUD_RATE": str(self.baud_rate_combo.GetValue()),
-                                       "SLAVE_ID": str(self.slaveid_txt.GetValue())}, 
+                                       "SLAVE_ID": str(self.slaveid_txt.GetValue()),
+                                       "IS_PROG_EN": self.serial_enable_programming.GetValue(),
+                                       "IS_DEB_EN": self.serial_enable_debugging.GetValue()},
                      "MODBUS_TCP": {"ENABLED": self.check_modbus_tcp.GetValue(),
                                     "MAC": str(self.mac_txt.GetValue()),
                                     "IP": str(self.ip_txt.GetValue()),
@@ -582,7 +519,8 @@ class KauriUploadDialog(wx.Dialog):
         settings['serial_iface'] = self.serial_iface_combo.GetValue()
         settings['baud'] = self.baud_rate_combo.GetValue()
         settings['slaveid'] = self.slaveid_txt.GetValue()
-        settings['serial_mb_prog_en'] = self.enable_programming.GetValue()
+        settings['serial_mb_prog_en'] = self.serial_enable_programming.GetValue()
+        settings['serial_mb_deb_en'] = self.serial_enable_debugging.GetValue()
         settings['mb_tcp'] = self.check_modbus_tcp.GetValue()
         settings['tcp_iface'] = self.tcp_iface_combo.GetValue()
         settings['mac'] = self.mac_txt.GetValue()
@@ -638,7 +576,8 @@ class KauriUploadDialog(wx.Dialog):
             wx.CallAfter(self.serial_iface_combo.SetValue, settings['serial_iface'])
             wx.CallAfter(self.baud_rate_combo.SetValue, settings['baud'])
             wx.CallAfter(self.slaveid_txt.SetValue, settings['slaveid'])
-            wx.CallAfter(self.enable_programming.SetValue, settings['serial_mb_prog_en'])
+            wx.CallAfter(self.serial_enable_programming.SetValue, settings['serial_mb_prog_en'])
+            wx.CallAfter(self.serial_enable_debugging.SetValue, settings['serial_mb_deb_en'])
             wx.CallAfter(self.check_modbus_tcp.SetValue, settings['mb_tcp'])
             wx.CallAfter(self.tcp_iface_combo.SetValue, settings['tcp_iface'])
             wx.CallAfter(self.mac_txt.SetValue, settings['mac'])

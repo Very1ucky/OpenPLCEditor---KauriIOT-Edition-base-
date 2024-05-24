@@ -42,7 +42,8 @@ C_SOURCES =  \
 ../../Generated/fdsfdsfds.c \
 ../../Generated/io_vars.c \
 Src/funcs_to_use.c \
-Src/main.c
+Src/main.c \
+Src/funcs_wrapper.c
 
 
 CPP_SOURCES = \

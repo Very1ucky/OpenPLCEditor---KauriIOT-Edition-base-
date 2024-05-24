@@ -14,6 +14,8 @@ typedef struct {
     uint8_t serial_interface;
     uint8_t slave_id;
     uint32_t baudrate;
+    bool is_ser_prog_en;
+    bool is_ser_deb_en;
     
     bool is_mb_tcp_enabled;
 } __attribute__((packed)) config;
