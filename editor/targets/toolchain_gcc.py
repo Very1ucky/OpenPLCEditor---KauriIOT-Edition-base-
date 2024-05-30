@@ -197,7 +197,8 @@ class toolchain_gcc(object):
                             "\"%s\" -c \"%s\" -o \"%s\" -O2 %s %s" %
                             (self.compiler, CFile, objectfilename, Builder_CFLAGS, CFLAGS)
                         ).spin()
-
+                        
+                        status = False
                         if status:
                             self.srcmd5.pop(bn)
                             self.CTRInstance.logger.write_error(_("C compilation of %s failed.\n") % bn)
@@ -227,7 +228,7 @@ class toolchain_gcc(object):
                  self.bin_path,
                  ALLldflags)
             ).spin()
-
+            status = False
             if status:
                 return False
 

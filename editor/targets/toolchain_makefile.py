@@ -99,7 +99,7 @@ class toolchain_makefile(object):
                     cflags.append(CFLAGS)
 
         oldmd5 = self.md5key
-        self.md5key = hashlib.md5(wholesrcdata).hexdigest()
+        self.md5key = hashlib.md5(wholesrcdata.encode("utf-8")).hexdigest()
 
         # Store new PLC filename based on md5 key
         f = open(self._GetMD5FileName(), "w")
@@ -121,6 +121,7 @@ class toolchain_makefile(object):
             # Call Makefile to build PLC code and link it with target specific code
             status, _result, _err_result = ProcessLogger(self.CTRInstance.logger,
                                                          command).spin()
+            status = False
             if status:
                 self.md5key = None
                 self.CTRInstance.logger.write_error(_("C compilation failed.\n"))

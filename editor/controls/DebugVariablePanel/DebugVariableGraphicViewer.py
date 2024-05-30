@@ -412,7 +412,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
 
         # Add other buttons to contextual menu
         for bitmap, callback in [
-                #("force", self.OnForceItemButton),
+                ("force", self.OnForceItemButton),
                 ("export_graph_mini", self.OnExportItemGraphButton),
                 ("delete_graph", self.OnRemoveItemButton)]:
             self.ContextualButtons.append(GraphButton(0, 0, bitmap, callback))

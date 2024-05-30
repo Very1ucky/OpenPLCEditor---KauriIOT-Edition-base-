@@ -27,6 +27,7 @@
 Beremiz Project Controller
 """
 
+import glob
 import sys
 import os
 import platform as os_platform
@@ -49,6 +50,7 @@ import wx
 
 import platform
 
+from dialogs import KauriUploadDialog
 import features
 import connectors
 import util.paths as paths
@@ -60,7 +62,7 @@ from editors.FileManagementPanel import FileManagementPanel
 from editors.ProjectNodeEditor import ProjectNodeEditor
 from editors.IECCodeViewer import IECCodeViewer
 from editors.DebugViewer import DebugViewer, REFRESH_PERIOD
-from dialogs import UriEditor, IDManager, ArduinoUploadDialog, DebuggerRemoteConnDialog
+from dialogs import UriEditor, IDManager, DebuggerRemoteConnDialog
 from PLCControler import PLCControler
 from plcopen.structures import IEC_KEYWORDS
 from plcopen.types_enums import ComputeConfigurationResourceName, ITEM_CONFNODE
@@ -1142,9 +1144,18 @@ class ProjectController(ConfigTreeNode, PLCControler):
         
         base_folder = paths.AbsDir(__file__)
         loader = FileSystemLoader(
-            os.path.join(base_folder, 'kauri_parser', 'src'))
+            os.path.join(base_folder, 'kauri_parser'))
+        
+        
         template = Environment(loader=loader).get_template('debug.c.j2')
-        cfile = os.path.join(base_folder, 'kauri_parser', 'src', 'debug.c')
+        path = os.path.join(base_folder, 'kauri_parser', "Sources", "Common", 'Generated')
+        if not os.path.exists(path):
+            os.makedirs(path)
+        else:
+            files = glob.glob(f'{path}/*')
+            for f in files:
+                os.remove(f)
+        cfile = os.path.join(path, 'debug.c')
         with open(cfile, 'w') as f:
             f.write(template.render(
                 debug={
@@ -1154,7 +1165,32 @@ class ProjectController(ConfigTreeNode, PLCControler):
                     'types': list(set(a.split("_",1)[0] for a in enums))
                 })
             )
-        return cfile, ''
+            
+        hfile = os.path.join(path, 'debug.h')
+        with open(hfile, 'w') as f:
+            f.write('''#ifndef DEBUG_H
+#define DEBUG_H
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+void set_endianness(uint8_t value);
+
+uint16_t get_var_count(void);
+
+size_t get_var_size(size_t);
+
+void *get_var_addr(size_t);
+
+void force_var(size_t, bool, void *);
+
+void set_trace(size_t, bool, void *);
+
+void trace_reset(void);
+
+#endif''')
+        return cfile, hfile
     
     def Generate_plc_debugger(self):
         """
@@ -1211,7 +1247,8 @@ class ProjectController(ConfigTreeNode, PLCControler):
                        self.LocationCFilesAndCFLAGS if loc and DoCalls]]
 
         # Generate main, based on template
-        if not self.BeremizRoot.getDisable_Extensions():
+        # NOTE: For now the runtime extensions are disabled on OpenPLC as it breaks OpenPLC debugger
+        if False: #not self.BeremizRoot.getDisable_Extensions():
             plc_main_code = targets.GetCode("plc_main_head.c") % {
                 "calls_prototypes": "\n".join([(
                     "int __init_%(s)s(int argc,char **argv);\n" +
@@ -1605,7 +1642,7 @@ class ProjectController(ConfigTreeNode, PLCControler):
         "_showIDManager": False,
         "_Repair": False,
         "_generateOpenPLC": True,
-        "_generateArduino": True,
+        "_generateKauri": True,
         "_debugPLC"  : True
     }
 
@@ -1616,7 +1653,7 @@ class ProjectController(ConfigTreeNode, PLCControler):
                                  "_Connect": False,
                                  "_Disconnect": False,
                                  "_generateOpenPLC": True,
-                                 "_generateArduino": True,
+                                 "_generateKauri": True,
                                  "_debugPLC": False},
         PlcStatus.Stopped:      {"_Run": True,
                                  "_Stop": False,
@@ -1625,7 +1662,7 @@ class ProjectController(ConfigTreeNode, PLCControler):
                                  "_Disconnect": False,
                                  "_Repair": False,
                                  "_generateOpenPLC": True,
-                                 "_generateArduino": True,
+                                 "_generateKauri": True,
                                  "_debugPLC": True},
         PlcStatus.Empty:        {"_Transfer": False,
                                  "_Connect": False,
@@ -1691,7 +1728,7 @@ class ProjectController(ConfigTreeNode, PLCControler):
                 if len(Traces) > 0:
                     for debug_tick, debug_buff in Traces:
                         debug_vars = UnpackDebugBuffer(
-                            debug_buff, self.TracedIECTypes)
+                            debug_buff, self.TracedIECTypes, self._buildType == 'simulator')
                         if debug_vars is not None:
                             for IECPath, values_buffer, value in zip(
                                     self.TracedIECPath,
@@ -2200,7 +2237,7 @@ class ProjectController(ConfigTreeNode, PLCControler):
                     self.logger.write_error(
                         'It was not possible to save the generated program\n')
     
-    def _generateArduino(self):
+    def _generateKauri(self):
         self._Clean()
         self._buildType = "remote"
         if (self._Build() is True):
@@ -2227,17 +2264,11 @@ class ProjectController(ConfigTreeNode, PLCControler):
             f = open(self._getIECgeneratedcodepath(), 'r')
             program = f.read()
             f.close()
-            f = open(os.path.join(self._getBuildPath(), "POUS.c"), 'r')
-            pous_file = f.read()
-            f.close()
             
             resource_name = re.search("RESOURCE (.*) ON PLC", program)[1]
-            f = open(os.path.join(self._getBuildPath(), f"{resource_name}.c"), 'r')
-            resource_file = f.read()
-            f.close()
             
             self.generate_embed_plc_debugger()
-            dialog = ArduinoUploadDialog.ArduinoUploadDialog(self.AppFrame, program, MD5, pous_file, resource_file, resource_name, self._ProgramList, self._Ticktime, self._DbgVariablesList, self._getBuildPath())
+            dialog = KauriUploadDialog.KauriUploadDialog(self.AppFrame, MD5, resource_name, self._Ticktime, self._getBuildPath())
             dialog.ShowModal()
 
     def _Repair(self):
@@ -2400,10 +2431,10 @@ class ProjectController(ConfigTreeNode, PLCControler):
             "shown":      False,
         },
         {
-            "bitmap":    "arduino",
-            "name":    _("Upload Arduino"),
+            "bitmap":    "kauri",
+            "name":    _("Upload Kauri"),
             "tooltip": _("Transfer program to PLC"),
-            "method":   "_generateArduino",
+            "method":   "_generateKauri",
             "shown":      True,
         },
         {
