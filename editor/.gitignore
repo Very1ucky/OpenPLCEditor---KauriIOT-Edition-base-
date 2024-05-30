@@ -8,3 +8,4 @@
 **/my_*.pem
 tests/tools/Docker/requirements.txt
 kauri_parser/Sources/Generated/
+
