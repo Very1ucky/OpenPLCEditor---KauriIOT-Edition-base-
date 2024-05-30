@@ -27,7 +27,7 @@ uint16_t tcp_receive(uint16_t socket_id, char *msg_to_receive) {
     return temp(socket_id, msg_to_receive);
 }
 
-uint16_t tcp_close(uint16_t socket_id) {
-    uint16_t (*temp)(uint16_t) = (uint16_t (*)(uint16_t))(TCP_CLOSE_ADDR);
+bool tcp_close(uint16_t socket_id) {
+    bool (*temp)(uint16_t) = (bool (*)(uint16_t))(TCP_CLOSE_ADDR);
     return temp(socket_id);
 }

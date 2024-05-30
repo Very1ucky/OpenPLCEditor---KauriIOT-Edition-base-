@@ -58,7 +58,7 @@ typedef struct {
   __DECLARE_VAR(BOOL,ENO)
   __DECLARE_VAR(BOOL,CLOSE)
   __DECLARE_VAR(UINT,SOCKET_ID)
-  __DECLARE_VAR(INT,SUCCESS)
+  __DECLARE_VAR(BOOL,SUCCESS)
  
   // FB private variables - TEMP, private and located variables
 

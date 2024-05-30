@@ -34,7 +34,7 @@
           </ST>
         </body>
         <documentation>
-          <xhtml:p><![CDATA[Connect to a remote TCP server when CONNECT is TRUE. Upon success, this block returns the connection ID on SOCKET_ID. If SOCKET_ID is less than zero, then the connection was not successfull]]></xhtml:p>
+          <xhtml:p><![CDATA[Connect to a remote TCP server when CONNECT is TRUE. Upon success, this block returns the connection ID on SOCKET_ID. If SOCKET_ID is equal to zero, then the connection was not successfull]]></xhtml:p>
         </documentation>
       </pou>
       <pou name="TCP_SEND" pouType="functionBlock">
@@ -54,7 +54,7 @@
           </ST>
         </body>
         <documentation>
-          <xhtml:p><![CDATA[Send a message to a remote device using TCP/IP when SEND is TRUE. SOCKET_ID must receive a connection ID from a successfull connection using the TCP_Connect block. BYTES_SENT returns the number of bytes sent to the remote device. If BYTES_SENT is less than zero then an error occurred while trying to send the message]]></xhtml:p>
+          <xhtml:p><![CDATA[Send a message to a remote device using TCP/IP when SEND is TRUE. SOCKET_ID must receive a connection ID from a successfull connection using the TCP_Connect block. BYTES_SENT returns the number of bytes sent to the remote device. If BYTES_SENT is equal to zero then an error occurred while trying to send the message]]></xhtml:p>
         </documentation>
       </pou>
       <pou name="TCP_RECEIVE" pouType="functionBlock">
@@ -89,11 +89,11 @@
         </interface>
         <body>
           <ST>
-            <xhtml:p><![CDATA[SUCCESS := 0;]]></xhtml:p>
+            <xhtml:p><![CDATA[SUCCESS := 1;]]></xhtml:p>
           </ST>
         </body>
         <documentation>
-          <xhtml:p><![CDATA[Close the TCP connection with the remote server. If SUCCESS is less than zero, then the connection was not successfully closed, or the connection does not exist anymore.]]></xhtml:p>
+          <xhtml:p><![CDATA[Close the TCP connection with the remote server.]]></xhtml:p>
         </documentation>
       </pou>
     </pous>
