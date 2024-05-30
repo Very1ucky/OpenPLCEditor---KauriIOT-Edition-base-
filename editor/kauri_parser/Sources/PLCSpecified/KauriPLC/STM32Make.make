@@ -35,12 +35,11 @@ BUILD_DIR = build
 # source
 ######################################
 # C sources
-C_SOURCES =  \
-../../Generated/Config0.c \
-../../Generated/POUS.c \
-../../Generated/debug.c \
-../../Generated/fdsfdsfds.c \
-../../Generated/io_vars.c \
+C_SOURCES = ../../Common/Generated/Res0.c \
+../../Common/Generated/Config0.c \
+../../Common/Generated/POUS.c \
+../../Common/Generated/debug.c \
+../../Common/Generated/io_vars.c \
 Src/funcs_to_use.c \
 Src/main.c \
 Src/funcs_wrapper.c
@@ -110,7 +109,8 @@ AS_INCLUDES = \
 
 # C includes
 C_INCLUDES =  \
--I../../Generated   \
+-I../../Common/Generated   \
+-I../../Common/MatiecBased \
 -ISrc
 
 

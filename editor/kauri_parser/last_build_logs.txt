@@ -1,0 +1,6 @@
+Prepearing files for building
+Start to build project
+Project successfully build
+RAM used: 32.42%
+FLASH used: 12.60%
+

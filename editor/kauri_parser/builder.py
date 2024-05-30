@@ -14,7 +14,9 @@ import wx
 
 class PlcProgramBuilder:
     
-    path_to_generated_files = os.path.join(paths.AbsDir(__file__), "Sources", "Generated")
+    compiler_logs = ""
+    
+    path_to_generated_files = os.path.join(paths.AbsDir(__file__), "Sources", "Common", "Generated")
     
     def scrollToEnd(self, txtCtrl):
         if os_platform.system() != "Darwin":
@@ -24,13 +26,13 @@ class PlcProgramBuilder:
         txtCtrl.Update()
 
     def outputIntoCompileWindow(self, str: str):
-        # global compiler_logs
-        # compiler_logs += str
+        self.compiler_logs += str
         wx.CallAfter(self.txtCtrl.AppendText, str)
         wx.CallAfter(self.scrollToEnd, self.txtCtrl)
 
     def build(self, board_type, defs, resource_name, build_path, port, txtCtrl):
         self.txtCtrl = txtCtrl
+        self.resource_name = resource_name
 
         self._setupSrcFiles(defs, resource_name, build_path)
         binary_path = self._buildBinary(board_type)
@@ -39,6 +41,8 @@ class PlcProgramBuilder:
             self._sendFwViaSerial(port, binary_path, defs)
 
         self.outputIntoCompileWindow("\n")
+        
+        self._saveLogs(os.path.join("editor", "kauri_parser", "last_build_logs.txt"))
 
     def _buildBinary(self, board_type) -> str:
         self.outputIntoCompileWindow("Start to build project\n")
@@ -46,6 +50,20 @@ class PlcProgramBuilder:
             make_path = os.path.join(
                 paths.AbsDir(__file__), "Sources", "PLCSpecified", "KauriPLC", "STM32Make.make"
             )
+            
+            makefile_data = ""
+            with open(make_path, "r") as makefile:
+                makefile_data = makefile.readlines()
+            
+            new_makefile_data = []
+            for line in makefile_data:
+                if line.startswith("C_SOURCES = "):
+                    line = f"C_SOURCES = ../../Common/Generated/{self.resource_name}.c \\\n"
+                new_makefile_data.append(line)
+            
+            with open(make_path, "w") as makefile:
+                makefile.writelines(new_makefile_data)
+            
             files_path = os.path.join(paths.AbsDir(__file__), "Sources", "PLCSpecified", "KauriPLC")
             build_command = f"make -C {files_path} -f {make_path}"
             try:
@@ -64,6 +82,7 @@ class PlcProgramBuilder:
 
             return os.path.join(files_path, "build", "PLC_Logic.bin")
         else:
+            self.outputIntoCompileWindow("Failed to build project (specified platform doesn't exist)")
             return None
 
     def _sendFwViaSerial(self, port, fw_path, defs):
@@ -142,19 +161,6 @@ class PlcProgramBuilder:
     def _setupSrcFiles(self, defs, resource_name, build_path):
         
         gen_path = self.path_to_generated_files
-        try:
-            os.remove(os.path.join(gen_path, "app_conf.h"))
-            os.remove(os.path.join(gen_path, f"{resource_name}.c"))
-            os.remove(os.path.join(gen_path, f"{resource_name}.h"))
-            os.remove(os.path.join(gen_path, "Config0.c"))
-            os.remove(os.path.join(gen_path, "Config0.h"))
-            os.remove(os.path.join(gen_path, "LOCATED_VARIABLES.h"))
-            os.remove(os.path.join(gen_path, "io_vars.c"))
-            os.remove(os.path.join(gen_path, "io_vars.h"))
-            os.remove(os.path.join(gen_path, "POUS.h"))
-            os.remove(os.path.join(gen_path, "POUS.c"))
-        except FileNotFoundError:
-            pass
         
         self.outputIntoCompileWindow("Prepearing files for building\n")
         
@@ -336,6 +342,9 @@ void io_vars_init();
         with open(os.path.join(gen_path, "POUS.c"), "w") as f:
             f.write(pous_code_c)
 
+    def _saveLogs(self, path: str):
+        with open(path, "w") as f:
+            f.write(self.compiler_logs)
 
 class ModbusSendClient:
     # Table of CRC values for high-order byte

@@ -27,6 +27,7 @@
 Beremiz Project Controller
 """
 
+import glob
 import sys
 import os
 import platform as os_platform
@@ -1144,10 +1145,16 @@ class ProjectController(ConfigTreeNode, PLCControler):
         base_folder = paths.AbsDir(__file__)
         loader = FileSystemLoader(
             os.path.join(base_folder, 'kauri_parser'))
+        
+        
         template = Environment(loader=loader).get_template('debug.c.j2')
-        path = os.path.join(base_folder, 'kauri_parser', "Sources", 'Generated')
+        path = os.path.join(base_folder, 'kauri_parser', "Sources", "Common", 'Generated')
         if not os.path.exists(path):
             os.makedirs(path)
+        else:
+            files = glob.glob(f'{path}/*')
+            for f in files:
+                os.remove(f)
         cfile = os.path.join(path, 'debug.c')
         with open(cfile, 'w') as f:
             f.write(template.render(

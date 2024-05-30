@@ -535,11 +535,7 @@ class KauriUploadDialog(wx.Dialog):
 
         #write settings to disk
         jsonStr = json.dumps(settings)
-        if platform.system() == 'Windows':
-            base_path = 'editor\\kauri_parser\\'
-        else:
-            base_path = 'editor/kauri_parser/'
-        f = open(base_path+'settings.json', 'w')
+        f = open(os.path.join("editor", "kauri_parser", 'settings.json'), 'w')
         f.write(jsonStr)
         f.flush()
         f.close()
@@ -547,12 +543,8 @@ class KauriUploadDialog(wx.Dialog):
 
     def loadSettings(self):
         #read settings from disk
-        if platform.system() == 'Windows':
-            base_path = 'editor\\kauri_parser\\'
-        else:
-            base_path = 'editor/kauri_parser/'
-        if (os.path.exists(base_path+'settings.json')):
-            f = open(base_path+'settings.json', 'r')
+        if (os.path.exists(os.path.join("editor", "kauri_parser", 'settings.json'))):
+            f = open(os.path.join("editor", "kauri_parser", 'settings.json'), 'r')
             jsonStr = f.read()
             f.close()
 
@@ -589,26 +581,48 @@ class KauriUploadDialog(wx.Dialog):
             wx.CallAfter(self.wifi_pwd_txt.SetValue, settings['pwd'])
 
             wx.CallAfter(self.onUIChange, None)
+        else:
+            settings = {}
+            settings['board_type'] = ""
+            settings['com_port'] = ""
+            settings['mb_serial'] = False
+            settings['serial_iface'] = ""
+            settings['baud'] = ""
+            settings['slaveid'] = ""
+            settings['serial_mb_prog_en'] = False
+            settings['serial_mb_deb_en'] = False
+            settings['mb_tcp'] = False
+            settings['tcp_iface'] = ""
+            settings['mac'] = ""
+            settings['ip'] = ""
+            settings['dns'] = ""
+            settings['gateway'] = ""
+            settings['subnet'] = ""
+            settings['ssid'] = ""
+            settings['pwd'] = ""
+            settings['last_update'] = self.last_update
+            
+
+            #write settings to disk
+            jsonStr = json.dumps(settings)
+
+            f = open(os.path.join("editor", "kauri_parser", 'settings.json'), 'w')
+            f.write(jsonStr)
+            f.flush()
+            f.close()
     
     def loadHals(self):
         # load hals list from json file, or construct it
-        if platform.system() == 'Windows':
-            jfile = 'editor\\kauri_parser\\hals.json'
-        else:
-            jfile = 'editor/kauri_parser/hals.json'
         
-        f = open(jfile, 'r')
+        f = open(os.path.join("editor", "kauri_parser", 'hals.json'), 'r')
         jsonStr = f.read()
         f.close()
         self.hals = json.loads(jsonStr)
 
     def saveHals(self):
         jsonStr = json.dumps(self.hals)
-        if platform.system() == 'Windows':
-            jfile = 'editor\\kauri_parser\\hals.json'
-        else:
-            jfile = 'editor/kauri_parser/hals.json'
-        f = open(jfile, 'w')
+
+        f = open(os.path.join("editor", "kauri_parser", 'hals.json'), 'w')
         f.write(jsonStr)
         f.flush()
         f.close()
