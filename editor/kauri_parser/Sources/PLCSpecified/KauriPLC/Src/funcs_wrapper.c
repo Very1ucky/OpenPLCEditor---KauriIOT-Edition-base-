@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdbool.h>
 
 #define START_ADDR 0x0800010c
 #define LOG_MES_ADDR ((void **)(START_ADDR))[1]

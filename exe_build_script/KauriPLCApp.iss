@@ -55,5 +55,6 @@ Source: "E:\Projects\OpenPLC_Editor\*"; Excludes: ".venv,python/.venv,.vscode,.g
 [Icons]
 Name: "{group}\{#Name}"; Filename: "{app}\OpenPLC Editor.bat"; IconFilename: "{app}\brz.ico"; Tasks: desktopicon
 
-[Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+[UninstallDelete]
+Type: files; Name: "{app}\python\*"
+Type: files; Name: "{app}\editor\kauri_parser\*"
