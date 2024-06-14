@@ -116,11 +116,11 @@ C_INCLUDES =  \
 
 
 # compile gcc flags
-ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
+ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -fdata-sections -ffunction-sections
 
-CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
+CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -fdata-sections -ffunction-sections
 
-CXXFLAGS = $(MCU) $(CXX_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections -feliminate-unused-debug-types
+CXXFLAGS = $(MCU) $(CXX_DEFS) $(C_INCLUDES) $(OPT) -fdata-sections -ffunction-sections -feliminate-unused-debug-types
 
 ifeq ($(DEBUG), 1)
 CFLAGS += -g -gdwarf -ggdb
@@ -128,8 +128,8 @@ CXXFLAGS += -g -gdwarf -ggdb
 endif
 
 # Add additional flags
-CFLAGS += -Wall -fdata-sections -ffunction-sections 
-ASFLAGS += -Wall -fdata-sections -ffunction-sections 
+CFLAGS += -fdata-sections -ffunction-sections 
+ASFLAGS += -fdata-sections -ffunction-sections 
 CXXFLAGS += 
 
 # Generate dependency information

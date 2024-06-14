@@ -18,6 +18,9 @@ import json
 class KauriUploadDialog(wx.Dialog):
     """Dialog to configure upload parameters"""
 
+    base_folder = paths.AbsParentDir(__file__)
+
+
     def __init__(self, parent, md5, resource_name, ticktime, build_path):
         """ 
         Constructor
@@ -535,7 +538,7 @@ class KauriUploadDialog(wx.Dialog):
 
         #write settings to disk
         jsonStr = json.dumps(settings)
-        f = open(os.path.join("editor", "kauri_parser", 'settings.json'), 'w')
+        f = open(os.path.join(self.base_folder, "kauri_parser", 'settings.json'), 'w')
         f.write(jsonStr)
         f.flush()
         f.close()
@@ -543,8 +546,8 @@ class KauriUploadDialog(wx.Dialog):
 
     def loadSettings(self):
         #read settings from disk
-        if (os.path.exists(os.path.join("editor", "kauri_parser", 'settings.json'))):
-            f = open(os.path.join("editor", "kauri_parser", 'settings.json'), 'r')
+        if (os.path.exists(os.path.join(self.base_folder, "kauri_parser", 'settings.json'))):
+            f = open(os.path.join(self.base_folder, "kauri_parser", 'settings.json'), 'r')
             jsonStr = f.read()
             f.close()
 
@@ -606,7 +609,7 @@ class KauriUploadDialog(wx.Dialog):
             #write settings to disk
             jsonStr = json.dumps(settings)
 
-            f = open(os.path.join("editor", "kauri_parser", 'settings.json'), 'w')
+            f = open(os.path.join(self.base_folder, "kauri_parser", 'settings.json'), 'w')
             f.write(jsonStr)
             f.flush()
             f.close()
@@ -614,7 +617,7 @@ class KauriUploadDialog(wx.Dialog):
     def loadHals(self):
         # load hals list from json file, or construct it
         
-        f = open(os.path.join("editor", "kauri_parser", 'hals.json'), 'r')
+        f = open(os.path.join(self.base_folder, "kauri_parser", 'hals.json'), 'r')
         jsonStr = f.read()
         f.close()
         self.hals = json.loads(jsonStr)
@@ -622,7 +625,7 @@ class KauriUploadDialog(wx.Dialog):
     def saveHals(self):
         jsonStr = json.dumps(self.hals)
 
-        f = open(os.path.join("editor", "kauri_parser", 'hals.json'), 'w')
+        f = open(os.path.join(self.base_folder, "kauri_parser", 'hals.json'), 'w')
         f.write(jsonStr)
         f.flush()
         f.close()

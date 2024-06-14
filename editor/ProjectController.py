@@ -130,7 +130,7 @@ class Iec2CSettings(object):
             cmd = "iec2c"
         
         paths = [
-            os.path.join(base_folder, "matiec")
+            os.path.join(base_folder, "..", "matiec")
         ]
         path = self.findObject(
             paths, lambda p: os.path.isfile(os.path.join(p, cmd)))

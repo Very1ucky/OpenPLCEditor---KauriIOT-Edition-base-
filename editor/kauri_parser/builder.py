@@ -18,6 +18,8 @@ class PlcProgramBuilder:
     
     path_to_generated_files = os.path.join(paths.AbsDir(__file__), "Sources", "Common", "Generated")
     
+    base_folder = paths.AbsDir(__file__)
+    
     def scrollToEnd(self, txtCtrl):
         if os_platform.system() != "Darwin":
             txtCtrl.SetInsertionPoint(-1)
@@ -42,13 +44,13 @@ class PlcProgramBuilder:
 
         self.outputIntoCompileWindow("\n")
         
-        self._saveLogs(os.path.join("editor", "kauri_parser", "last_build_logs.txt"))
+        self._saveLogs(os.path.join(self.base_folder, "last_build_logs.txt"))
 
     def _buildBinary(self, board_type) -> str:
         self.outputIntoCompileWindow("Start to build project\n")
         if board_type == "Kauri PLC":
             make_path = os.path.join(
-                paths.AbsDir(__file__), "Sources", "PLCSpecified", "KauriPLC", "STM32Make.make"
+                self.base_folder, "Sources", "PLCSpecified", "KauriPLC", "STM32Make.make"
             )
             
             makefile_data = ""
@@ -64,7 +66,7 @@ class PlcProgramBuilder:
             with open(make_path, "w") as makefile:
                 makefile.writelines(new_makefile_data)
             
-            files_path = os.path.join(paths.AbsDir(__file__), "Sources", "PLCSpecified", "KauriPLC")
+            files_path = os.path.join(self.base_folder, "Sources", "PLCSpecified", "KauriPLC")
             build_command = f"make -C {files_path} -f {make_path}"
             try:
                 res = subprocess.check_output(
