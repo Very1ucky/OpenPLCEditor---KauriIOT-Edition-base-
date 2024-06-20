@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define START_ADDR 0x0800010c
+#define START_ADDR 0x08000000 + 0x184
 #define LOG_MES_ADDR ((void **)(START_ADDR))[1]
 #define TCP_CON_ADDR ((void **)(START_ADDR))[2]
 #define TCP_SEND_ADDR ((void **)(START_ADDR))[3]

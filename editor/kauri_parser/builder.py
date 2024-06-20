@@ -1,3 +1,4 @@
+from ctypes import FormatError
 import os
 import platform as os_platform
 import re
@@ -13,13 +14,15 @@ import wx
 
 
 class PlcProgramBuilder:
-    
+
     compiler_logs = ""
-    
-    path_to_generated_files = os.path.join(paths.AbsDir(__file__), "Sources", "Common", "Generated")
-    
+
+    path_to_generated_files = os.path.join(
+        paths.AbsDir(__file__), "Sources", "Common", "Generated"
+    )
+
     base_folder = paths.AbsDir(__file__)
-    
+
     def scrollToEnd(self, txtCtrl):
         if os_platform.system() != "Darwin":
             txtCtrl.SetInsertionPoint(-1)
@@ -36,37 +39,48 @@ class PlcProgramBuilder:
         self.txtCtrl = txtCtrl
         self.resource_name = resource_name
 
-        self._setupSrcFiles(defs, resource_name, build_path)
-        binary_path = self._buildBinary(board_type)
-
-        if binary_path is not None and port is not None:
-            self._sendFwViaSerial(port, binary_path, defs)
-
-        self.outputIntoCompileWindow("\n")
+        try:
+            self._setupSrcFiles(defs, resource_name, build_path)
         
+            
+            binary_path = self._buildBinary(board_type)
+
+            if binary_path is not None and port is not None:
+                self._sendFwViaSerial(port, binary_path, defs)
+
+            self.outputIntoCompileWindow("\n")
+        except Exception as e:
+            self.outputIntoCompileWindow(f"Compilation error ({e})\n")
+            
         self._saveLogs(os.path.join(self.base_folder, "last_build_logs.txt"))
 
     def _buildBinary(self, board_type) -> str:
         self.outputIntoCompileWindow("Start to build project\n")
         if board_type == "Kauri PLC":
             make_path = os.path.join(
-                self.base_folder, "Sources", "PLCSpecified", "KauriPLC", "STM32Make.make"
+                self.base_folder,
+                "Sources",
+                "PLCSpecified",
+                "KauriPLC",
+                "STM32Make.make",
             )
-            
+
             makefile_data = ""
             with open(make_path, "r") as makefile:
                 makefile_data = makefile.readlines()
-            
+
             new_makefile_data = []
             for line in makefile_data:
                 if line.startswith("C_SOURCES = "):
                     line = f"C_SOURCES = ../../Common/Generated/{self.resource_name}.c \\\n"
                 new_makefile_data.append(line)
-            
+
             with open(make_path, "w") as makefile:
                 makefile.writelines(new_makefile_data)
-            
-            files_path = os.path.join(self.base_folder, "Sources", "PLCSpecified", "KauriPLC")
+
+            files_path = os.path.join(
+                self.base_folder, "Sources", "PLCSpecified", "KauriPLC"
+            )
             build_command = f"make -C {files_path} -f {make_path}"
             try:
                 res = subprocess.check_output(
@@ -84,7 +98,9 @@ class PlcProgramBuilder:
 
             return os.path.join(files_path, "build", "PLC_Logic.bin")
         else:
-            self.outputIntoCompileWindow("Failed to build project (specified platform doesn't exist)")
+            self.outputIntoCompileWindow(
+                "Failed to build project (specified platform doesn't exist)"
+            )
             return None
 
     def _sendFwViaSerial(self, port, fw_path, defs):
@@ -123,7 +139,7 @@ class PlcProgramBuilder:
 
         f = open(fw_path, "rb")
         data_byte = f.read(248)
-        send_client.set_timeout(3)
+        send_client.set_timeout(20)
         resp = send_client._send_modbus_request(
             func_name_to_code["ST_FW_SEND"], bytes()
         )
@@ -161,14 +177,35 @@ class PlcProgramBuilder:
         send_client.disconnect()
 
     def _setupSrcFiles(self, defs, resource_name, build_path):
-        
+
         gen_path = self.path_to_generated_files
-        
+
         self.outputIntoCompileWindow("Prepearing files for building\n")
-        
+
         if not os.path.exists(gen_path):
             os.makedirs(gen_path)
+
+
+        if defs["MODBUS_TCP"]["ENABLED"]:
+            if len(defs["MODBUS_TCP"]["MAC"]) != 6 or len(defs["MODBUS_TCP"]["IP"]) != 4 or len(defs["MODBUS_TCP"]["GATEWAY"]) != 4 or len(defs["MODBUS_TCP"]["SUBNET"]) != 4:
+                raise ValueError("Ethernet cfg have incorrect format (MAC: XX:XX:XX:XX:XX:XX; IP, DNS, SUBNET: I.I.I.I (X - hex number, I - dec number in range 0-255))")
+
+            for mac_part in defs["MODBUS_TCP"]["MAC"]:
+                if int(mac_part, 16) > 0xff:
+                    raise ValueError("MAC address is incorrect")
+                
+            for ip_part in defs["MODBUS_TCP"]["IP"]:
+                if int(ip_part, 10) > 255:
+                    raise ValueError("IP is incorrect")
+                
+            for ip_part in defs["MODBUS_TCP"]["GATEWAY"]:
+                if int(ip_part, 10) > 255:
+                    raise ValueError("gateway is incorrect")
             
+            for ip_part in defs["MODBUS_TCP"]["SUBNET"]:
+                if int(ip_part, 10) > 255:
+                    raise ValueError("subnet is incorrect")
+        
         with open(os.path.join(gen_path, "app_conf.h"), "w") as f:
             f.write(
                 f"""#ifndef APP_CONF_H
@@ -176,21 +213,24 @@ class PlcProgramBuilder:
 
 #define MD5 "{defs["MD5"]}"
 
-#define MB_SERIAL_IFACE {defs["MODBUS_SERIAL"]["INTERFACE"]}
 #define MB_SERIAL_EN {'1' if defs["MODBUS_SERIAL"]["ENABLED"] else '0'}
+#define MB_SERIAL_IFACE {defs["MODBUS_SERIAL"]["INTERFACE"]}
 #define MB_SERIAL_BR {defs["MODBUS_SERIAL"]["BAUD_RATE"]}
 #define MB_SERIAL_SLAVE_ID {defs["MODBUS_SERIAL"]["SLAVE_ID"]}
 #define MB_SERIAL_IS_PROG_EN {'1' if defs["MODBUS_SERIAL"]["IS_PROG_EN"] else '0'}
 #define MB_SERIAL_IS_DEB_EN {'1' if defs["MODBUS_SERIAL"]["IS_DEB_EN"] else '0'}
 
+#define NET_FEAT_EN {'1' if defs["NET_FEATURES"]["ENABLED"] else '0'}
+#define NET_MAC {str(defs["NET_FEATURES"]["MAC"]).replace("',", ",").replace("']", "}").replace("[", "{").replace("'", "0x")}
+#define DHCP_EN {'1' if defs["NET_FEATURES"]["EN_DHCP"] else '0'}
+#define NET_IP {str(defs["NET_FEATURES"]["IP"]).replace("'", "").replace("]", "}").replace("[", "{")}
+#define NET_GATEWAY {str(defs["NET_FEATURES"]["GATEWAY"]).replace("'", "").replace("]", "}").replace("[", "{")}
+#define NET_SUBNET {str(defs["NET_FEATURES"]["SUBNET"]).replace("'", "").replace("]", "}").replace("[", "{")}
+
 #define MB_TCP_EN {'1' if defs["MODBUS_TCP"]["ENABLED"] else '0'}
-#define MB_TCP_MAC {defs["MODBUS_TCP"]["MAC"]}
-#define MB_TCP_IP {defs["MODBUS_TCP"]["IP"]}
-#define MB_TCP_DNS {defs["MODBUS_TCP"]["DNS"]}
-#define MB_TCP_GATEWAY {defs["MODBUS_TCP"]["GATEWAY"]}
-#define MB_TCP_SUBNET {defs["MODBUS_TCP"]["SUBNET"]}
-#define MB_TCP_SSID {defs["MODBUS_TCP"]["SSID"]}
-#define MB_TCP_PWD {defs["MODBUS_TCP"]["PWD"]}
+
+#define MB_TCP_IS_PROG_EN {'1' if defs["MODBUS_TCP"]["IS_PROG_EN"] else '0'}
+#define MB_TCP_IS_DEB_EN {'1' if defs["MODBUS_TCP"]["IS_DEB_EN"] else '0'}
 
 #endif"""
             )
@@ -347,6 +387,7 @@ void io_vars_init();
     def _saveLogs(self, path: str):
         with open(path, "w") as f:
             f.write(self.compiler_logs)
+
 
 class ModbusSendClient:
     # Table of CRC values for high-order byte

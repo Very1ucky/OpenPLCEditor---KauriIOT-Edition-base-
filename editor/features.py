@@ -14,7 +14,7 @@ libraries = [
     ('Etherlab', 'etherlab.EthercatMaster.EtherlabLibrary', False),
     ('SVGHMI', 'svghmi.SVGHMILibrary', False)]
 
-catalog = [('arduino_ext', _('Arduino extension'), _('Add Arduino Sketch to the PLC project'), 'arduino_ext.CFile')]
+catalog = []
 """
     ('opcua', _('OPC-UA client'), _('Map OPC-UA server as located variables'), 'opc_ua.OPCUAClient'),
     ('canfestival', _('CANopen support'), _('Map located variables over CANopen'), 'canfestival.canfestival.RootClass'),

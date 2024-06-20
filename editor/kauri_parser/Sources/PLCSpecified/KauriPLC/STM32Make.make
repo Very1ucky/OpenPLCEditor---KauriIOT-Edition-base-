@@ -50,7 +50,7 @@ CPP_SOURCES = \
 
 # ASM sources
 ASM_SOURCES =  \
-startup_stm32f103xb.s
+startup_stm32f207xx.s
 
 
 #######################################
@@ -140,7 +140,7 @@ CXXFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 # LDFLAGS
 #######################################
 # link script
-LDSCRIPT = STM32F103RBTx_FLASH.ld
+LDSCRIPT = STM32F207ZGTx_FLASH.ld
 
 # libraries
 LIBS = -lc -lm -lnosys

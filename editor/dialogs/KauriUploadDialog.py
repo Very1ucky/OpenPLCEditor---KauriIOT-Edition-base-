@@ -224,27 +224,27 @@ class KauriUploadDialog(wx.Dialog):
         self.m_staticline21 = wx.StaticLine( self.m_panel7, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
         bSizer4.Add( self.m_staticline21, 0, wx.ALL|wx.BOTTOM|wx.EXPAND|wx.TOP, 5 )
 
-        self.check_modbus_tcp = wx.CheckBox( self.m_panel7, wx.ID_ANY, u"Enable Modbus TCP", wx.DefaultPosition, wx.DefaultSize, 0 )
-        bSizer4.Add( self.check_modbus_tcp, 0, wx.ALL, 10 )
-        self.check_modbus_tcp.Bind(wx.EVT_CHECKBOX, self.onUIChange)
+        self.enable_web_functions = wx.CheckBox( self.m_panel7, wx.ID_ANY, u"Enable network functions", wx.DefaultPosition, wx.DefaultSize, 0 )
+        bSizer4.Add( self.enable_web_functions, 0, wx.ALL, 10 )
+        self.enable_web_functions.Bind(wx.EVT_CHECKBOX, self.onUIChange)
         
         fgSizer3 = wx.FlexGridSizer( 0, 2, 0, 0 )
         fgSizer3.SetFlexibleDirection( wx.BOTH )
         fgSizer3.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 
-        self.m_staticText14 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"Interface:", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.m_staticText14.Wrap( -1 )
-        self.m_staticText14.SetMinSize( wx.Size( 60,-1 ) )
+        # self.m_staticText14 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"Interface:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        # self.m_staticText14.Wrap( -1 )
+        # self.m_staticText14.SetMinSize( wx.Size( 60,-1 ) )
 
-        fgSizer3.Add( self.m_staticText14, 0, wx.ALL, 5 )
+        # fgSizer3.Add( self.m_staticText14, 0, wx.ALL, 5 )
 
-        tcp_iface_comboChoices = [ u"Ethernet", u"WiFi" ]
-        self.tcp_iface_combo = wx.ComboBox( self.m_panel7, wx.ID_ANY, u"Ethernet", wx.DefaultPosition, wx.DefaultSize, tcp_iface_comboChoices, wx.CB_READONLY )
-        self.tcp_iface_combo.SetSelection( 0 )
-        self.tcp_iface_combo.SetMinSize( wx.Size( 440,-1 ) )
-        self.tcp_iface_combo.Bind(wx.EVT_COMBOBOX, self.onUIChange)
+        # tcp_iface_comboChoices = [ u"Ethernet", u"WiFi" ]
+        # self.tcp_iface_combo = wx.ComboBox( self.m_panel7, wx.ID_ANY, u"Ethernet", wx.DefaultPosition, wx.DefaultSize, tcp_iface_comboChoices, wx.CB_READONLY )
+        # self.tcp_iface_combo.SetSelection( 0 )
+        # self.tcp_iface_combo.SetMinSize( wx.Size( 440,-1 ) )
+        # self.tcp_iface_combo.Bind(wx.EVT_COMBOBOX, self.onUIChange)
 
-        fgSizer3.Add( self.tcp_iface_combo, 0, wx.ALL|wx.EXPAND, 5 )
+        # fgSizer3.Add( self.tcp_iface_combo, 0, wx.ALL|wx.EXPAND, 5 )
 
         self.m_staticText15 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"MAC:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText15.Wrap( -1 )
@@ -252,13 +252,23 @@ class KauriUploadDialog(wx.Dialog):
 
         fgSizer3.Add( self.m_staticText15, 0, wx.ALL, 5 )
 
-        self.mac_txt = wx.TextCtrl( self.m_panel7, wx.ID_ANY, u"0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.mac_txt = wx.TextCtrl( self.m_panel7, wx.ID_ANY, u"AA:AA:AA:AA:AA:AA", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.mac_txt.SetMinSize( wx.Size( 440,-1 ) )
 
         fgSizer3.Add( self.mac_txt, 0, wx.ALL|wx.EXPAND, 5 )
 
 
         bSizer4.Add( fgSizer3, 0, wx.EXPAND, 5 )
+
+        fgSizer35 = wx.FlexGridSizer( 0, 4, 0, 0 )
+        fgSizer35.SetFlexibleDirection( wx.BOTH )
+        fgSizer35.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+        
+        self.use_dhcp = wx.CheckBox( self.m_panel7, wx.ID_ANY, u"Using DHCP server", wx.DefaultPosition, wx.DefaultSize, 0 )
+        fgSizer35.Add( self.use_dhcp, 0, wx.ALL, 5 )
+        self.use_dhcp.Bind(wx.EVT_CHECKBOX, self.onUIChange)
+        
+        bSizer4.Add( fgSizer35, 0, wx.EXPAND, 5 )
 
         fgSizer4 = wx.FlexGridSizer( 0, 4, 0, 0 )
         fgSizer4.SetFlexibleDirection( wx.BOTH )
@@ -274,17 +284,6 @@ class KauriUploadDialog(wx.Dialog):
         self.ip_txt.SetMinSize( wx.Size( 180,-1 ) )
 
         fgSizer4.Add( self.ip_txt, 0, wx.ALL, 5 )
-
-        self.m_staticText18 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"DNS:", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.m_staticText18.Wrap( -1 )
-        self.m_staticText18.SetMinSize( wx.Size( 60,-1 ) )
-
-        fgSizer4.Add( self.m_staticText18, 0, wx.ALL, 5 )
-
-        self.dns_txt = wx.TextCtrl( self.m_panel7, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.dns_txt.SetMinSize( wx.Size( 180,-1 ) )
-
-        fgSizer4.Add( self.dns_txt, 0, wx.ALL, 5 )
 
         self.m_staticText19 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"Gateway:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText19.Wrap( -1 )
@@ -308,34 +307,52 @@ class KauriUploadDialog(wx.Dialog):
 
         fgSizer4.Add( self.subnet_txt, 0, wx.ALL, 5 )
 
-        self.m_staticText21 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"Wi-Fi SSID:", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.m_staticText21.Wrap( -1 )
-        self.m_staticText21.SetMinSize( wx.Size( 60,-1 ) )
+        # self.m_staticText21 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"Wi-Fi SSID:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        # self.m_staticText21.Wrap( -1 )
+        # self.m_staticText21.SetMinSize( wx.Size( 60,-1 ) )
 
-        fgSizer4.Add( self.m_staticText21, 0, wx.ALL, 5 )
+        # fgSizer4.Add( self.m_staticText21, 0, wx.ALL, 5 )
+        
+        
 
-        self.wifi_ssid_txt = wx.TextCtrl( self.m_panel7, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.wifi_ssid_txt.SetMinSize( wx.Size( 180,-1 ) )
+        # self.wifi_ssid_txt = wx.TextCtrl( self.m_panel7, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        # self.wifi_ssid_txt.SetMinSize( wx.Size( 180,-1 ) )
 
-        fgSizer4.Add( self.wifi_ssid_txt, 0, wx.ALL, 5 )
+        # fgSizer4.Add( self.wifi_ssid_txt, 0, wx.ALL, 5 )
 
-        self.m_staticText22 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"Password:", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.m_staticText22.Wrap( -1 )
-        self.m_staticText22.SetMinSize( wx.Size( 60,-1 ) )
+        # self.m_staticText22 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"Password:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        # self.m_staticText22.Wrap( -1 )
+        # self.m_staticText22.SetMinSize( wx.Size( 60,-1 ) )
 
-        fgSizer4.Add( self.m_staticText22, 0, wx.ALL, 5 )
+        # fgSizer4.Add( self.m_staticText22, 0, wx.ALL, 5 )
 
-        self.wifi_pwd_txt = wx.TextCtrl( self.m_panel7, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_PASSWORD )
-        self.wifi_pwd_txt.SetMinSize( wx.Size( 180,-1 ) )
+        # self.wifi_pwd_txt = wx.TextCtrl( self.m_panel7, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_PASSWORD )
+        # self.wifi_pwd_txt.SetMinSize( wx.Size( 180,-1 ) )
 
-        fgSizer4.Add( self.wifi_pwd_txt, 0, wx.ALL, 5 )
+        # fgSizer4.Add( self.wifi_pwd_txt, 0, wx.ALL, 5 )
 
         self.m_staticText24 = wx.StaticText( self.m_panel7, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText24.Wrap( -1 )
         fgSizer4.Add( self.m_staticText24, 0, wx.ALL, 5 )
-
-
+        
         bSizer4.Add( fgSizer4, 1, wx.EXPAND, 5 )
+        
+        self.check_modbus_tcp = wx.CheckBox( self.m_panel7, wx.ID_ANY, u"Enable Modbus TCP", wx.DefaultPosition, wx.DefaultSize, 0 )
+        bSizer4.Add( self.check_modbus_tcp, 0, wx.ALL, 10 )
+        self.check_modbus_tcp.Bind(wx.EVT_CHECKBOX, self.onUIChange)
+        
+        fgSizer5 = wx.FlexGridSizer( 0, 4, 0, 0 )
+        fgSizer5.SetFlexibleDirection( wx.BOTH )
+        fgSizer5.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+        
+        self.eth_enable_programming = wx.CheckBox( self.m_panel7, wx.ID_ANY, u"Enable programming", wx.DefaultPosition, wx.DefaultSize, 0 )
+        fgSizer5.Add( self.eth_enable_programming, 0, wx.ALL, 5 )
+        
+        self.eth_enable_debugging = wx.CheckBox( self.m_panel7, wx.ID_ANY, u"Enable debugging", wx.DefaultPosition, wx.DefaultSize, 0 )
+        fgSizer5.Add( self.eth_enable_debugging, 0, wx.ALL, 5 )
+        bSizer4.Add( fgSizer5, 1, wx.EXPAND, 5 )
+
+        
 
         gSizer2 = wx.GridSizer( 0, 2, 0, 0 )
 
@@ -373,6 +390,7 @@ class KauriUploadDialog(wx.Dialog):
         self.Centre( wx.BOTH )
 
         self.loadSettings()
+        self.onUIChange()
 
     def __del__( self ):
         pass
@@ -397,7 +415,7 @@ class KauriUploadDialog(wx.Dialog):
         self.check_modbus_tcp.Enable(self.hals[sel_board]["is_mb_tcp_en"])
 
 
-    def onUIChange(self, e):
+    def onUIChange(self, e=None):
         
         # Update Comms
         if (self.check_modbus_serial.GetValue() is False):
@@ -428,40 +446,36 @@ class KauriUploadDialog(wx.Dialog):
             self.com_port_combo.Enable(False)
             self.upload_button.SetLabel("Compile")
         
-        if (self.check_modbus_tcp.GetValue() is False):
-            self.tcp_iface_combo.Enable(False)
+        if (self.enable_web_functions.GetValue() is False):
             self.mac_txt.Enable(False)
+            self.use_dhcp.Enable(False)
             self.ip_txt.Enable(False)
-            self.dns_txt.Enable(False)
             self.gateway_txt.Enable(False)
             self.subnet_txt.Enable(False)
-            self.wifi_ssid_txt.Enable(False)
-            self.wifi_pwd_txt.Enable(False)
-        elif (self.check_modbus_tcp.GetValue() is True):
-            self.tcp_iface_combo.Enable(True)
+            self.check_modbus_tcp.Enable(False)
+            self.check_modbus_tcp.SetValue(False)
+        elif (self.enable_web_functions.GetValue() is True):
             self.mac_txt.Enable(True)
-            self.ip_txt.Enable(True)
-            self.dns_txt.Enable(True)
-            self.gateway_txt.Enable(True)
-            self.subnet_txt.Enable(True)
-            if (self.tcp_iface_combo.GetValue() == u"Ethernet"):
-                self.wifi_ssid_txt.Enable(False)
-                self.wifi_pwd_txt.Enable(False)
-            elif (self.tcp_iface_combo.GetValue() == u"WiFi"):
-                self.wifi_ssid_txt.Enable(True)
-                self.wifi_pwd_txt.Enable(True)
-
-        #Update IOs
-        #board_type = self.board_type_combo.GetValue().split(" [")[0] #remove the trailing [version] on board name
-        #board_din = self.hals[board_type]['user_din']
-        #board_ain = self.hals[board_type]['user_ain']
-        #board_dout = self.hals[board_type]['user_dout']
-        #board_aout = self.hals[board_type]['user_aout']
+            self.use_dhcp.Enable(True)
+            if (self.use_dhcp.GetValue() is True):
+                self.ip_txt.Enable(False)
+                self.gateway_txt.Enable(False)
+                self.subnet_txt.Enable(False)
+            else:
+                self.ip_txt.Enable(True)
+                self.gateway_txt.Enable(True)
+                self.subnet_txt.Enable(True)
+            self.check_modbus_tcp.Enable(True)
+                
+        if (self.check_modbus_tcp.GetValue() is False):
+            self.eth_enable_programming.Enable(False)
+            self.eth_enable_debugging.Enable(False)
+        elif (self.check_modbus_tcp.GetValue() is True):
+            self.eth_enable_programming.Enable(True)
+            self.eth_enable_debugging.Enable(True)
+                
         
-        #self.din_txt.SetValue(str(board_din))
-        #self.ain_txt.SetValue(str(board_ain))
-        #self.dout_txt.SetValue(str(board_dout))
-        #self.aout_txt.SetValue(str(board_aout))
+        
 
     def startBuilder(self):
 
@@ -502,14 +516,15 @@ class KauriUploadDialog(wx.Dialog):
                                        "SLAVE_ID": str(self.slaveid_txt.GetValue()),
                                        "IS_PROG_EN": self.serial_enable_programming.GetValue(),
                                        "IS_DEB_EN": self.serial_enable_debugging.GetValue()},
+                     "NET_FEATURES": {"ENABLED": self.enable_web_functions.GetValue(),
+                                      "MAC": str(self.mac_txt.GetValue()).split(":"),
+                                      "EN_DHCP": self.use_dhcp.GetValue(),
+                                      "IP": str(self.ip_txt.GetValue()).split("."),
+                                      "GATEWAY": str(self.gateway_txt.GetValue()).split("."),
+                                      "SUBNET": str(self.subnet_txt.GetValue()).split("."),},
                      "MODBUS_TCP": {"ENABLED": self.check_modbus_tcp.GetValue(),
-                                    "MAC": str(self.mac_txt.GetValue()),
-                                    "IP": str(self.ip_txt.GetValue()),
-                                    "DNS": str(self.dns_txt.GetValue()),
-                                    "GATEWAY": str(self.gateway_txt.GetValue()),
-                                    "SUBNET": str(self.subnet_txt.GetValue()),
-                                    "SSID": str(self.wifi_ssid_txt.GetValue()),
-                                    "PWD": str(self.wifi_pwd_txt.GetValue())},
+                                    "IS_PROG_EN": self.eth_enable_programming.GetValue(),
+                                    "IS_DEB_EN": self.eth_enable_debugging.GetValue()},
                      "TICKTIME": self.ticktime}
         
         return defs_dict
@@ -524,15 +539,15 @@ class KauriUploadDialog(wx.Dialog):
         settings['slaveid'] = self.slaveid_txt.GetValue()
         settings['serial_mb_prog_en'] = self.serial_enable_programming.GetValue()
         settings['serial_mb_deb_en'] = self.serial_enable_debugging.GetValue()
+        settings['en_net'] = self.enable_web_functions.GetValue()
+        settings['en_dhcp'] = self.use_dhcp.GetValue()
         settings['mb_tcp'] = self.check_modbus_tcp.GetValue()
-        settings['tcp_iface'] = self.tcp_iface_combo.GetValue()
         settings['mac'] = self.mac_txt.GetValue()
         settings['ip'] = self.ip_txt.GetValue()
-        settings['dns'] = self.dns_txt.GetValue()
         settings['gateway'] = self.gateway_txt.GetValue()
         settings['subnet'] = self.subnet_txt.GetValue()
-        settings['ssid'] = self.wifi_ssid_txt.GetValue()
-        settings['pwd'] = self.wifi_pwd_txt.GetValue()
+        settings['tcp_mb_prog_en'] = self.eth_enable_programming.GetValue()
+        settings['tcp_mb_deb_en'] = self.eth_enable_debugging.GetValue()
         settings['last_update'] = self.last_update
         
 
@@ -573,17 +588,22 @@ class KauriUploadDialog(wx.Dialog):
             wx.CallAfter(self.slaveid_txt.SetValue, settings['slaveid'])
             wx.CallAfter(self.serial_enable_programming.SetValue, settings['serial_mb_prog_en'])
             wx.CallAfter(self.serial_enable_debugging.SetValue, settings['serial_mb_deb_en'])
+            wx.CallAfter(self.check_modbus_tcp.SetValue, settings['en_net'])
+            wx.CallAfter(self.use_dhcp.SetValue, settings['en_dhcp'])
             wx.CallAfter(self.check_modbus_tcp.SetValue, settings['mb_tcp'])
-            wx.CallAfter(self.tcp_iface_combo.SetValue, settings['tcp_iface'])
             wx.CallAfter(self.mac_txt.SetValue, settings['mac'])
             wx.CallAfter(self.ip_txt.SetValue, settings['ip'])
-            wx.CallAfter(self.dns_txt.SetValue, settings['dns'])
             wx.CallAfter(self.gateway_txt.SetValue, settings['gateway'])
             wx.CallAfter(self.subnet_txt.SetValue, settings['subnet'])
-            wx.CallAfter(self.wifi_ssid_txt.SetValue, settings['ssid'])
-            wx.CallAfter(self.wifi_pwd_txt.SetValue, settings['pwd'])
+            wx.CallAfter(self.serial_enable_programming.SetValue, settings['tcp_mb_prog_en'])
+            wx.CallAfter(self.serial_enable_debugging.SetValue, settings['tcp_mb_deb_en'])
 
             wx.CallAfter(self.onUIChange, None)
+            
+            sel_board = self.board_type_combo.GetValue()
+            if sel_board in self.hals.keys():
+                self.check_modbus_serial.Enable(self.hals[sel_board]["is_mb_serial_en"])
+                self.check_modbus_tcp.Enable(self.hals[sel_board]["is_mb_tcp_en"])
         else:
             settings = {}
             settings['board_type'] = ""
@@ -594,15 +614,16 @@ class KauriUploadDialog(wx.Dialog):
             settings['slaveid'] = ""
             settings['serial_mb_prog_en'] = False
             settings['serial_mb_deb_en'] = False
+            settings['en_net'] = False
+            settings['en_dhcp'] = False
             settings['mb_tcp'] = False
             settings['tcp_iface'] = ""
-            settings['mac'] = ""
-            settings['ip'] = ""
-            settings['dns'] = ""
-            settings['gateway'] = ""
-            settings['subnet'] = ""
-            settings['ssid'] = ""
-            settings['pwd'] = ""
+            settings['mac'] = "AA:AA:AA:AA:AA:AA"
+            settings['ip'] = "000.000.000.000"
+            settings['gateway'] = "000.000.000.000"
+            settings['subnet'] = "000.000.000.000"
+            settings['tcp_mb_prog_en'] = False
+            settings['tcp_mb_deb_en'] = False
             settings['last_update'] = self.last_update
             
 
@@ -621,6 +642,8 @@ class KauriUploadDialog(wx.Dialog):
         jsonStr = f.read()
         f.close()
         self.hals = json.loads(jsonStr)
+        
+            
 
     def saveHals(self):
         jsonStr = json.dumps(self.hals)
