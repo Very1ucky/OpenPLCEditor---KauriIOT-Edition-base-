@@ -12,6 +12,8 @@ import serial
 import util.paths as paths
 import wx
 
+class TransferException(Exception):
+    pass
 
 class PlcProgramBuilder:
 
@@ -38,6 +40,7 @@ class PlcProgramBuilder:
     def build(self, board_type, defs, resource_name, build_path, port, txtCtrl):
         self.txtCtrl = txtCtrl
         self.resource_name = resource_name
+        self.build_failed = False
 
         try:
             self._setupSrcFiles(defs, resource_name, build_path)
@@ -49,8 +52,16 @@ class PlcProgramBuilder:
                 self._sendFwViaSerial(port, binary_path, defs)
 
             self.outputIntoCompileWindow("\n")
+        except ConnectionError as e:
+            self.outputIntoCompileWindow(f"Connection error ({e})\n")
+            self.build_failed = True
+        except TransferException as e:
+            self.outputIntoCompileWindow(f"Transfer error ({e})\n")
+            self.build_failed = True
         except Exception as e:
             self.outputIntoCompileWindow(f"Compilation error ({e})\n")
+            self.build_failed = True
+        
             
         self._saveLogs(os.path.join(self.base_folder, "last_build_logs.txt"))
 
@@ -89,6 +100,7 @@ class PlcProgramBuilder:
             except subprocess.CalledProcessError as err:
                 self.outputIntoCompileWindow("Build failed\n")
                 self.outputIntoCompileWindow(f"Build output: \n{err.stdout}")
+                self.build_failed = True
                 return None
             else:
                 res = re.findall(r"B\s+?([.\d]+)\%", res.decode())
@@ -125,17 +137,14 @@ class PlcProgramBuilder:
             "END_FW_SEND": 104,
         }
 
-        is_error_occured = False
-
         send_client = ModbusSendClient(
             modbus_type="RTU", serial_port=port, baudrate=115200, slave_id=1
         )
 
         if send_client.connect():
-            self.outputIntoCompileWindow(f"Connected to device from {port}\n")
+            self.outputIntoCompileWindow(f"Connected to device on {port}\n")
         else:
-            self.outputIntoCompileWindow(f"Failed to connect to device from {port}\n")
-            return
+            raise ConnectionError(f"Failed to connect to device on {port}")
 
         f = open(fw_path, "rb")
         data_byte = f.read(248)
@@ -144,35 +153,28 @@ class PlcProgramBuilder:
             func_name_to_code["ST_FW_SEND"], bytes()
         )
         if resp is None or resp[2 + 6] != 0:
-            is_error_occured = True
-            self.outputIntoCompileWindow(
-                "An error occurred during transmission (failed to initiate sending)\n"
-            )
+            raise TransferException("failed to initiate sending")
+        
         send_client.set_timeout(0.1)
-        if not is_error_occured:
-            while data_byte:
-                resp = send_client._send_modbus_request(
-                    func_name_to_code["SEND_FW_PACKET"], data_byte
-                )
-                if resp is None or resp[2 + 6] != 0:
-                    self.outputIntoCompileWindow(
-                        "An error occurred during transmission\n"
-                    )
-                    break
-                data_byte = f.read(248)
+        while data_byte:
+            resp = send_client._send_modbus_request(
+                func_name_to_code["SEND_FW_PACKET"], data_byte
+            )
+            if resp is None or resp[2 + 6] != 0:
+                f.close()
+                raise TransferException("an error occurred during transmission binary data")
+
+            data_byte = f.read(248)
         f.close()
 
-        if not is_error_occured:
-            resp = send_client._send_modbus_request(
-                func_name_to_code["END_FW_SEND"], bytes()
-            )
-            if resp is not None:
-                self.outputIntoCompileWindow("An error occurred during transmission\n")
+        resp = send_client._send_modbus_request(
+            func_name_to_code["END_FW_SEND"], bytes()
+        )
+        if resp is not None:
+            raise TransferException("an error occurred during transmission of final packet")
 
-        if not is_error_occured:
-            self.outputIntoCompileWindow("The firmware was successfully loaded\n")
-        else:
-            self.outputIntoCompileWindow("The firmware wasn't loaded\n")
+        self.outputIntoCompileWindow("The firmware was successfully loaded\n")
+
 
         send_client.disconnect()
 

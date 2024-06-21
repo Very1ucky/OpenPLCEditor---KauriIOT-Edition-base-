@@ -511,7 +511,7 @@ class KauriUploadDialog(wx.Dialog):
             self.last_update = time.time()
         self.saveSettings()
         
-        if self.debug_after_transfer.GetValue() is True:
+        if self.debug_after_transfer.GetValue() and plc_builder.build_failed is False:
             self.EndModal(2)
 
     def OnUpload(self, event):
