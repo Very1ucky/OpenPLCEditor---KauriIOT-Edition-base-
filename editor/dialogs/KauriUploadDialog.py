@@ -27,6 +27,7 @@ class KauriUploadDialog(wx.Dialog):
         @param parent: Parent wx.Window of dialog for modal
         @param st_code: Compiled PLC program as ST code.
         """
+        
         self.build_path = build_path
         self.ticktime = ticktime
         self.resource_name = resource_name
@@ -106,6 +107,9 @@ class KauriUploadDialog(wx.Dialog):
         self.check_compile = wx.CheckBox( self.m_panel5, wx.ID_ANY, u"Compile Only", wx.DefaultPosition, wx.DefaultSize, 0 )
         bSizer21.Add( self.check_compile, 0, wx.LEFT, 15 )
         self.check_compile.Bind(wx.EVT_CHECKBOX, self.onUIChange)
+        
+        self.debug_after_transfer = wx.CheckBox( self.m_panel5, wx.ID_ANY, u"Debug after transfer", wx.DefaultPosition, wx.DefaultSize, 0 )
+        bSizer21.Add( self.debug_after_transfer, 0, wx.LEFT, 15 )
 
         self.m_staticline2 = wx.StaticLine( self.m_panel5, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
         bSizer21.Add( self.m_staticline2, 0, wx.EXPAND |wx.ALL, 5 )
@@ -440,9 +444,14 @@ class KauriUploadDialog(wx.Dialog):
             self.serial_enable_debugging.Enable(True)
 
         if (self.check_compile.GetValue() is False):
+            self.debug_after_transfer.Enable(True)
+            
             self.com_port_combo.Enable(True)
             self.upload_button.SetLabel("Transfer to PLC")
         elif (self.check_compile.GetValue() is True):
+            self.debug_after_transfer.Enable(False)
+            self.debug_after_transfer.SetValue(False)
+            
             self.com_port_combo.Enable(False)
             self.upload_button.SetLabel("Compile")
         
@@ -501,6 +510,9 @@ class KauriUploadDialog(wx.Dialog):
             self.update_subsystem = False
             self.last_update = time.time()
         self.saveSettings()
+        
+        if self.debug_after_transfer.GetValue() is True:
+            self.EndModal(2)
 
     def OnUpload(self, event):
         self.upload_button.Enable(False)
@@ -588,15 +600,15 @@ class KauriUploadDialog(wx.Dialog):
             wx.CallAfter(self.slaveid_txt.SetValue, settings['slaveid'])
             wx.CallAfter(self.serial_enable_programming.SetValue, settings['serial_mb_prog_en'])
             wx.CallAfter(self.serial_enable_debugging.SetValue, settings['serial_mb_deb_en'])
-            wx.CallAfter(self.check_modbus_tcp.SetValue, settings['en_net'])
+            wx.CallAfter(self.enable_web_functions.SetValue, settings['en_net'])
             wx.CallAfter(self.use_dhcp.SetValue, settings['en_dhcp'])
             wx.CallAfter(self.check_modbus_tcp.SetValue, settings['mb_tcp'])
             wx.CallAfter(self.mac_txt.SetValue, settings['mac'])
             wx.CallAfter(self.ip_txt.SetValue, settings['ip'])
             wx.CallAfter(self.gateway_txt.SetValue, settings['gateway'])
             wx.CallAfter(self.subnet_txt.SetValue, settings['subnet'])
-            wx.CallAfter(self.serial_enable_programming.SetValue, settings['tcp_mb_prog_en'])
-            wx.CallAfter(self.serial_enable_debugging.SetValue, settings['tcp_mb_deb_en'])
+            wx.CallAfter(self.eth_enable_programming.SetValue, settings['tcp_mb_prog_en'])
+            wx.CallAfter(self.eth_enable_debugging.SetValue, settings['tcp_mb_deb_en'])
 
             wx.CallAfter(self.onUIChange, None)
             

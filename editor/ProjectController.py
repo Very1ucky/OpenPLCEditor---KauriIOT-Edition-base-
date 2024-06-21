@@ -2269,8 +2269,9 @@ void trace_reset(void);
             
             self.generate_embed_plc_debugger()
             dialog = KauriUploadDialog.KauriUploadDialog(self.AppFrame, MD5, resource_name, self._Ticktime, self._getBuildPath())
-            dialog.ShowModal()
-            self._debugPLCWithoutBuild()
+            isNeedToDebug = dialog.ShowModal() == 2
+            if isNeedToDebug:
+                self._debugPLCWithoutBuild()
 
     def _Repair(self):
         dialog = wx.MessageDialog(
@@ -2296,6 +2297,7 @@ void trace_reset(void);
         
     
     def _debugPLCWithoutBuild(self):
+        self.BlockButtons()
         #Connect to target
         if (self._Connect() is False):
             self.UnblockButtons()

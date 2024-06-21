@@ -186,25 +186,30 @@ class PlcProgramBuilder:
             os.makedirs(gen_path)
 
 
-        if defs["MODBUS_TCP"]["ENABLED"]:
-            if len(defs["MODBUS_TCP"]["MAC"]) != 6 or len(defs["MODBUS_TCP"]["IP"]) != 4 or len(defs["MODBUS_TCP"]["GATEWAY"]) != 4 or len(defs["MODBUS_TCP"]["SUBNET"]) != 4:
-                raise ValueError("Ethernet cfg have incorrect format (MAC: XX:XX:XX:XX:XX:XX; IP, DNS, SUBNET: I.I.I.I (X - hex number, I - dec number in range 0-255))")
+        if defs["NET_FEATURES"]["ENABLED"]:
+            if len(defs["NET_FEATURES"]["MAC"]) != 6:
+                raise ValueError("Ethernet cfg have incorrect format (MAC: XX:XX:XX:XX:XX:XX (X - hex digit))")
 
-            for mac_part in defs["MODBUS_TCP"]["MAC"]:
+            for mac_part in defs["NET_FEATURES"]["MAC"]:
                 if int(mac_part, 16) > 0xff:
                     raise ValueError("MAC address is incorrect")
                 
-            for ip_part in defs["MODBUS_TCP"]["IP"]:
-                if int(ip_part, 10) > 255:
-                    raise ValueError("IP is incorrect")
-                
-            for ip_part in defs["MODBUS_TCP"]["GATEWAY"]:
-                if int(ip_part, 10) > 255:
-                    raise ValueError("gateway is incorrect")
             
-            for ip_part in defs["MODBUS_TCP"]["SUBNET"]:
-                if int(ip_part, 10) > 255:
-                    raise ValueError("subnet is incorrect")
+            if (defs["NET_FEATURES"]["EN_DHCP"]):
+                if len(defs["NET_FEATURES"]["IP"]) != 4 or len(defs["NET_FEATURES"]["GATEWAY"]) != 4 or len(defs["NET_FEATURES"]["SUBNET"]) != 4:
+                    raise ValueError("Ethernet cfg have incorrect format (IP, DNS, SUBNET: I.I.I.I (I - dec number in range 0-255))")
+                
+                for ip_part in defs["NET_FEATURES"]["IP"]:
+                    if int(ip_part, 10) > 255:
+                        raise ValueError("IP is incorrect")
+                    
+                for ip_part in defs["NET_FEATURES"]["GATEWAY"]:
+                    if int(ip_part, 10) > 255:
+                        raise ValueError("gateway is incorrect")
+                
+                for ip_part in defs["NET_FEATURES"]["SUBNET"]:
+                    if int(ip_part, 10) > 255:
+                        raise ValueError("subnet is incorrect")
         
         with open(os.path.join(gen_path, "app_conf.h"), "w") as f:
             f.write(
