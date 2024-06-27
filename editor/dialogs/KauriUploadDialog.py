@@ -81,9 +81,6 @@ class KauriUploadDialog(wx.Dialog):
         fgSizer1.SetFlexibleDirection( wx.BOTH )
         fgSizer1.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 
-
-
-
         self.m_staticText1 = wx.StaticText( self.m_panel5, wx.ID_ANY, u"Board Type", wx.DefaultPosition, wx.Size( 80,-1 ), 0 )
         self.m_staticText1.Wrap( -1 )
         fgSizer1.Add( self.m_staticText1, 0, wx.ALIGN_CENTER|wx.BOTTOM|wx.LEFT|wx.TOP, 15 )
@@ -91,6 +88,14 @@ class KauriUploadDialog(wx.Dialog):
         self.board_type_combo = wx.ComboBox( self.m_panel5, wx.ID_ANY, u"Kauri PLC", wx.DefaultPosition, wx.Size( 410,-1 ), board_type_comboChoices, 0 )
         fgSizer1.Add( self.board_type_combo, 0, wx.ALIGN_CENTER|wx.BOTTOM|wx.TOP, 15 )
         self.board_type_combo.Bind(wx.EVT_COMBOBOX, self.onBoardChange)
+
+        self.radio_serial = wx.RadioButton( self.m_panel5, wx.ID_ANY, u"Serial - RTU", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.radio_serial.Bind(wx.EVT_RADIOBUTTON, self.onUIChange)
+        fgSizer1.Add( self.radio_serial, 0, wx.ALL, 5 )
+
+        self.radio_ethernet = wx.RadioButton( self.m_panel5, wx.ID_ANY, u"Ethernet - TCP", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.radio_ethernet.Bind(wx.EVT_RADIOBUTTON, self.onUIChange)
+        fgSizer1.Add( self.radio_ethernet, 0, wx.ALL, 5 )
 
         self.m_staticText2 = wx.StaticText( self.m_panel5, wx.ID_ANY, u"COM Port", wx.DefaultPosition, wx.Size( 80,-1 ), 0 )
         self.m_staticText2.Wrap( -1 )
@@ -101,6 +106,13 @@ class KauriUploadDialog(wx.Dialog):
         fgSizer1.Add( self.com_port_combo, 0, wx.ALIGN_CENTER|wx.BOTTOM, 15 )
         self.com_port_combo.Bind(wx.EVT_COMBOBOX_DROPDOWN, self.reloadComboChoices)
 
+        self.m_staticText2 = wx.StaticText( self.m_panel5, wx.ID_ANY, u"IP:port", wx.DefaultPosition, wx.Size( 80,-1 ), 0 )
+        self.m_staticText2.Wrap( -1 )
+        fgSizer1.Add( self.m_staticText2, 0, wx.ALIGN_CENTER|wx.ALIGN_TOP|wx.BOTTOM|wx.LEFT, 15 )
+        
+        self.ip_port_input = wx.TextCtrl( self.m_panel5, wx.ID_ANY, "192.168.001.000:502", wx.DefaultPosition, wx.Size( 410,-1 ), 0 )
+        fgSizer1.Add( self.ip_port_input, wx.ALL, 5 )
+        
 
         bSizer21.Add( fgSizer1, 1, wx.EXPAND, 5 )
 
@@ -110,6 +122,7 @@ class KauriUploadDialog(wx.Dialog):
         
         self.debug_after_transfer = wx.CheckBox( self.m_panel5, wx.ID_ANY, u"Debug after transfer", wx.DefaultPosition, wx.DefaultSize, 0 )
         bSizer21.Add( self.debug_after_transfer, 0, wx.LEFT, 15 )
+        self.debug_after_transfer.Bind(wx.EVT_CHECKBOX, self.onUIChange)
 
         self.m_staticline2 = wx.StaticLine( self.m_panel5, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
         bSizer21.Add( self.m_staticline2, 0, wx.EXPAND |wx.ALL, 5 )
@@ -118,7 +131,7 @@ class KauriUploadDialog(wx.Dialog):
         self.m_staticText3.Wrap( -1 )
         bSizer21.Add( self.m_staticText3, 0, wx.ALL, 5 )
 
-        self.output_text = wx.TextCtrl( self.m_panel5, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( -1,230 ), wx.TE_MULTILINE|wx.TE_READONLY|wx.TE_WORDWRAP|wx.VSCROLL )
+        self.output_text = wx.TextCtrl( self.m_panel5, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( -1, 150 ), wx.TE_MULTILINE|wx.TE_READONLY|wx.TE_WORDWRAP|wx.VSCROLL )
         self.output_text.SetFont( wx.Font( 10, 75, 90, 90, False, "Consolas" ) )
         self.output_text.SetBackgroundColour( wx.BLACK )
         self.output_text.SetForegroundColour( wx.WHITE )
@@ -446,15 +459,20 @@ class KauriUploadDialog(wx.Dialog):
         if (self.check_compile.GetValue() is False):
             self.debug_after_transfer.Enable(True)
             
-            self.com_port_combo.Enable(True)
-            self.upload_button.SetLabel("Transfer to PLC")
+            self.radio_ethernet.Enable(True)
+            self.radio_serial.Enable(True)
+            if self.debug_after_transfer.GetValue() is True:
+                self.upload_button.SetLabel("Transfer to PLC and debug")
+            else:
+                self.upload_button.SetLabel("Transfer to PLC")
         elif (self.check_compile.GetValue() is True):
             self.debug_after_transfer.Enable(False)
             self.debug_after_transfer.SetValue(False)
             
-            self.com_port_combo.Enable(False)
+            self.radio_ethernet.Enable(False)
+            self.radio_serial.Enable(False)
+            
             self.upload_button.SetLabel("Compile")
-        
         if (self.enable_web_functions.GetValue() is False):
             self.mac_txt.Enable(False)
             self.use_dhcp.Enable(False)
@@ -482,8 +500,17 @@ class KauriUploadDialog(wx.Dialog):
         elif (self.check_modbus_tcp.GetValue() is True):
             self.eth_enable_programming.Enable(True)
             self.eth_enable_debugging.Enable(True)
-                
-        
+            
+        # Update radio button fields access
+        if (self.radio_serial.GetValue() is True):
+            self.com_port_combo.Enable(self.radio_serial.Enabled)
+            self.ip_port_input.Enable(False)
+        elif (self.radio_ethernet.GetValue() is True):
+            self.com_port_combo.Enable(False)
+            self.ip_port_input.Enable(self.radio_ethernet.Enabled)
+        else:
+            self.com_port_combo.Enable(False)
+            self.ip_port_input.Enable(False)
         
 
     def startBuilder(self):
@@ -493,16 +520,15 @@ class KauriUploadDialog(wx.Dialog):
         
         defs = self.generateDefinitionsFile()
 
-        port = "None" #invalid port
-        if self.check_compile.GetValue() is True:
-            port = None
-        elif self.com_port_combo.GetValue() in self.com_port_combo_choices:
-            port = self.com_port_combo_choices[self.com_port_combo.GetValue()]
+        if self.com_port_combo.Enabled and self.com_port_combo.GetValue() in self.com_port_combo_choices:
+            transfer_data = self.com_port_combo_choices[self.com_port_combo.GetValue()]
+        elif self.ip_port_input.Enabled:
+            transfer_data = self.ip_port_input.GetValue()
+        else:
+            transfer_data = None
         
-        #plc_parser = builder.PlcProgramParser()
-        #compiler_thread = threading.Thread(target=plc_parser.build, args=(defs, self.plc_program, self.pous_code, self.resource_code, self.resource_name, self.program_list, self.debug_vars_list, port, self.output_text, self.update_subsystem, self.build_path))
         plc_builder = builder.PlcProgramBuilder()
-        compiler_thread = threading.Thread(target=plc_builder.build, args=(board_type, defs, self.resource_name, self.build_path, port, self.output_text))
+        compiler_thread = threading.Thread(target=plc_builder.build, args=(board_type, defs, self.resource_name, self.build_path, self.radio_serial.GetValue() and not self.radio_ethernet.GetValue(), transfer_data, self.output_text))
         compiler_thread.start()
         compiler_thread.join()
         wx.CallAfter(self.upload_button.Enable, True)   
@@ -544,7 +570,9 @@ class KauriUploadDialog(wx.Dialog):
     def saveSettings(self):
         settings = {}
         settings['board_type'] = self.board_type_combo.GetValue()
+        settings['serial_transfer_en'] = self.radio_serial.GetValue()
         settings['com_port'] = self.com_port_combo.GetValue()
+        settings['ip_port'] = self.ip_port_input.GetValue()
         settings['mb_serial'] = self.check_modbus_serial.GetValue()
         settings['serial_iface'] = self.serial_iface_combo.GetValue()
         settings['baud'] = self.baud_rate_combo.GetValue()
@@ -594,6 +622,9 @@ class KauriUploadDialog(wx.Dialog):
 
             wx.CallAfter(self.board_type_combo.SetValue, settings['board_type'])
             wx.CallAfter(self.com_port_combo.SetValue, settings['com_port'])
+            wx.CallAfter(self.ip_port_input.SetValue, settings['ip_port'])
+            wx.CallAfter(self.radio_serial.SetValue, settings['serial_transfer_en'])
+            wx.CallAfter(self.radio_ethernet.SetValue, not settings['serial_transfer_en'])
             wx.CallAfter(self.check_modbus_serial.SetValue, settings['mb_serial'])
             wx.CallAfter(self.serial_iface_combo.SetValue, settings['serial_iface'])
             wx.CallAfter(self.baud_rate_combo.SetValue, settings['baud'])
@@ -620,6 +651,8 @@ class KauriUploadDialog(wx.Dialog):
             settings = {}
             settings['board_type'] = ""
             settings['com_port'] = ""
+            settings['serial_transfer_en'] = True
+            settings['ip_port'] = "192.168.001.000:502"
             settings['mb_serial'] = False
             settings['serial_iface'] = ""
             settings['baud'] = ""
@@ -646,6 +679,7 @@ class KauriUploadDialog(wx.Dialog):
             f.write(jsonStr)
             f.flush()
             f.close()
+            self.loadSettings()
     
     def loadHals(self):
         # load hals list from json file, or construct it

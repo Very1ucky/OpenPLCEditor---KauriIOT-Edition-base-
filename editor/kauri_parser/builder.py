@@ -12,8 +12,10 @@ import serial
 import util.paths as paths
 import wx
 
+
 class TransferException(Exception):
     pass
+
 
 class PlcProgramBuilder:
 
@@ -37,19 +39,27 @@ class PlcProgramBuilder:
         wx.CallAfter(self.txtCtrl.AppendText, str)
         wx.CallAfter(self.scrollToEnd, self.txtCtrl)
 
-    def build(self, board_type, defs, resource_name, build_path, port, txtCtrl):
+    def build(
+        self,
+        board_type,
+        defs,
+        resource_name,
+        build_path,
+        serial_transfer_en,
+        transfer_data,
+        txtCtrl,
+    ):
         self.txtCtrl = txtCtrl
         self.resource_name = resource_name
         self.build_failed = False
 
         try:
             self._setupSrcFiles(defs, resource_name, build_path)
-        
-            
+
             binary_path = self._buildBinary(board_type)
 
-            if binary_path is not None and port is not None:
-                self._sendFwViaSerial(port, binary_path, defs)
+            if binary_path is not None and transfer_data is not None:
+                self._sendFw(serial_transfer_en, transfer_data, binary_path)
 
             self.outputIntoCompileWindow("\n")
         except ConnectionError as e:
@@ -61,8 +71,7 @@ class PlcProgramBuilder:
         except Exception as e:
             self.outputIntoCompileWindow(f"Compilation error ({e})\n")
             self.build_failed = True
-        
-            
+
         self._saveLogs(os.path.join(self.base_folder, "last_build_logs.txt"))
 
     def _buildBinary(self, board_type) -> str:
@@ -115,21 +124,7 @@ class PlcProgramBuilder:
             )
             return None
 
-    def _sendFwViaSerial(self, port, fw_path, defs):
-        md5_len = len(defs["MD5"])
-        config_bytes = struct.pack(
-            "<H" + str(md5_len) + "s", md5_len, bytes(defs["MD5"], "utf-8")
-        )
-
-        # modbus serial
-        config_bytes += struct.pack(
-            "<?IB",
-            defs["MODBUS_SERIAL"]["ENABLED"],
-            int(defs["MODBUS_SERIAL"]["BAUD_RATE"]),
-            int(defs["MODBUS_SERIAL"]["SLAVE_ID"]),
-        )
-        # TODO parse another fields of mb tcp
-        config_bytes += struct.pack("<?", defs["MODBUS_TCP"]["ENABLED"])
+    def _sendFw(self, serial_transfer_en, port, fw_path):
 
         func_name_to_code = {
             "ST_FW_SEND": 102,
@@ -137,14 +132,20 @@ class PlcProgramBuilder:
             "END_FW_SEND": 104,
         }
 
-        send_client = ModbusSendClient(
-            modbus_type="RTU", serial_port=port, baudrate=115200, slave_id=1
-        )
+        if serial_transfer_en:
+            send_client = ModbusSendClient(
+                modbus_type="RTU", serial_port=port, baudrate=115200, slave_id=1
+            )
+        else:
+            ip_and_port = port.split(":")
+            send_client = ModbusSendClient(
+                modbus_type="TCP", host=ip_and_port[0], port=int(ip_and_port[1])
+            )
 
         if send_client.connect():
             self.outputIntoCompileWindow(f"Connected to device on {port}\n")
         else:
-            raise ConnectionError(f"Failed to connect to device on {port}")
+            raise ConnectionError(f"failed to connect to device on {port}")
 
         f = open(fw_path, "rb")
         data_byte = f.read(248)
@@ -154,7 +155,7 @@ class PlcProgramBuilder:
         )
         if resp is None or resp[2 + 6] != 0:
             raise TransferException("failed to initiate sending")
-        
+
         send_client.set_timeout(0.1)
         while data_byte:
             resp = send_client._send_modbus_request(
@@ -162,7 +163,9 @@ class PlcProgramBuilder:
             )
             if resp is None or resp[2 + 6] != 0:
                 f.close()
-                raise TransferException("an error occurred during transmission binary data")
+                raise TransferException(
+                    "an error occurred during transmission binary data"
+                )
 
             data_byte = f.read(248)
         f.close()
@@ -171,10 +174,11 @@ class PlcProgramBuilder:
             func_name_to_code["END_FW_SEND"], bytes()
         )
         if resp is not None:
-            raise TransferException("an error occurred during transmission of final packet")
+            raise TransferException(
+                "an error occurred during transmission of final packet"
+            )
 
         self.outputIntoCompileWindow("The firmware was successfully loaded\n")
-
 
         send_client.disconnect()
 
@@ -187,32 +191,38 @@ class PlcProgramBuilder:
         if not os.path.exists(gen_path):
             os.makedirs(gen_path)
 
-
         if defs["NET_FEATURES"]["ENABLED"]:
             if len(defs["NET_FEATURES"]["MAC"]) != 6:
-                raise ValueError("Ethernet cfg have incorrect format (MAC: XX:XX:XX:XX:XX:XX (X - hex digit))")
+                raise ValueError(
+                    "Ethernet cfg have incorrect format (MAC: XX:XX:XX:XX:XX:XX (X - hex digit))"
+                )
 
             for mac_part in defs["NET_FEATURES"]["MAC"]:
-                if int(mac_part, 16) > 0xff:
+                if int(mac_part, 16) > 0xFF:
                     raise ValueError("MAC address is incorrect")
-                
-            
-            if (defs["NET_FEATURES"]["EN_DHCP"]):
-                if len(defs["NET_FEATURES"]["IP"]) != 4 or len(defs["NET_FEATURES"]["GATEWAY"]) != 4 or len(defs["NET_FEATURES"]["SUBNET"]) != 4:
-                    raise ValueError("Ethernet cfg have incorrect format (IP, DNS, SUBNET: I.I.I.I (I - dec number in range 0-255))")
-                
+
+            if defs["NET_FEATURES"]["EN_DHCP"]:
+                if (
+                    len(defs["NET_FEATURES"]["IP"]) != 4
+                    or len(defs["NET_FEATURES"]["GATEWAY"]) != 4
+                    or len(defs["NET_FEATURES"]["SUBNET"]) != 4
+                ):
+                    raise ValueError(
+                        "Ethernet cfg have incorrect format (IP, DNS, SUBNET: I.I.I.I (I - dec number in range 0-255))"
+                    )
+
                 for ip_part in defs["NET_FEATURES"]["IP"]:
                     if int(ip_part, 10) > 255:
                         raise ValueError("IP is incorrect")
-                    
+
                 for ip_part in defs["NET_FEATURES"]["GATEWAY"]:
                     if int(ip_part, 10) > 255:
                         raise ValueError("gateway is incorrect")
-                
+
                 for ip_part in defs["NET_FEATURES"]["SUBNET"]:
                     if int(ip_part, 10) > 255:
                         raise ValueError("subnet is incorrect")
-        
+
         with open(os.path.join(gen_path, "app_conf.h"), "w") as f:
             f.write(
                 f"""#ifndef APP_CONF_H
