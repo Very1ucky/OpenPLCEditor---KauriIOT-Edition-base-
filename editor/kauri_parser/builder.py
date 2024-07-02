@@ -145,6 +145,7 @@ class PlcProgramBuilder:
         if send_client.connect():
             self.outputIntoCompileWindow(f"Connected to device on {port}\n")
         else:
+            send_client.disconnect()
             raise ConnectionError(f"failed to connect to device on {port}")
 
         f = open(fw_path, "rb")
@@ -175,6 +176,7 @@ class PlcProgramBuilder:
             func_name_to_code["END_FW_SEND"], bytes()
         )
         if resp is not None:
+            send_client.disconnect()
             raise TransferException(
                 "an error occurred during transmission of final packet"
             )

@@ -17,7 +17,8 @@ import json
 
 class KauriUploadDialog(wx.Dialog):
     """Dialog to configure upload parameters"""
-
+    
+    
     base_folder = paths.AbsParentDir(__file__)
 
 
@@ -538,7 +539,7 @@ class KauriUploadDialog(wx.Dialog):
         self.saveSettings()
         
         if self.debug_after_transfer.GetValue() and plc_builder.build_failed is False:
-            self.EndModal(2)
+            self.EndModal(0)
 
     def OnUpload(self, event):
         self.upload_button.Enable(False)

@@ -2269,7 +2269,8 @@ void trace_reset(void);
             
             self.generate_embed_plc_debugger()
             dialog = KauriUploadDialog.KauriUploadDialog(self.AppFrame, MD5, resource_name, self._Ticktime, self._getBuildPath())
-            isNeedToDebug = dialog.ShowModal() == 2
+            dialog.ShowModal()
+            isNeedToDebug = dialog.debug_after_transfer.GetValue()
             if isNeedToDebug:
                 self._debugPLCWithoutBuild()
 
