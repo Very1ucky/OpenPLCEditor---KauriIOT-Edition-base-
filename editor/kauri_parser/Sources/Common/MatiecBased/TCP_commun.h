@@ -94,7 +94,15 @@ static void TCP_CONNECT_body__(TCP_CONNECT *data__) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(TRUE));
   }
 
-  __SET_VAR(data__->,SOCKET_ID,,tcp_connect(data__->IP_ADDRESS, data__->PORT));
+  if (__GET_VAR(data__->CONNECT)) {
+
+    __GET_VAR(data__->IP_ADDRESS).body[__GET_VAR(data__->IP_ADDRESS).len] = '\0';
+
+
+    __SET_VAR(data__->,SOCKET_ID,,tcp_connect(__GET_VAR(data__->IP_ADDRESS), __GET_VAR(data__->PORT)));
+  }
+
+  
 
   goto __end;
 

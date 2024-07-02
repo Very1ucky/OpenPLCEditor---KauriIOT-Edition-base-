@@ -151,8 +151,9 @@ class PlcProgramBuilder:
         data_byte = f.read(248)
         send_client.set_timeout(20)
         resp = send_client._send_modbus_request(
-            func_name_to_code["ST_FW_SEND"], bytes()
+            func_name_to_code["ST_FW_SEND"], bytes(), 9 
         )
+        #print(len(resp))
         if resp is None or resp[2 + 6] != 0:
             raise TransferException("failed to initiate sending")
 
@@ -990,7 +991,7 @@ class ModbusSendClient:
 
         return request
 
-    def _send_modbus_request(self, function_code, data):
+    def _send_modbus_request(self, function_code, data, size = 1024):
         request = self._assemble_request(function_code, data)
         if self.modbus_type == "RTU":
             # Add CRC for Modbus RTU
@@ -1001,9 +1002,9 @@ class ModbusSendClient:
             crc_bytes = struct.pack(">H", crc)  # Convert crc to bytes using struct.pack
             request += crc_bytes
 
-        return self._send_request(request)
+        return self._send_request(request, size)
 
-    def _send_request(self, request):
+    def _send_request(self, request, size):
         try:
             if self.modbus_type == "TCP":
                 if not self.sock:
@@ -1012,7 +1013,7 @@ class ModbusSendClient:
                     return None
 
                 self.sock.send(request)
-                response = self.sock.recv(1024)
+                response = self.sock.recv(size)
                 return response
 
             elif self.modbus_type == "RTU":

@@ -1889,5 +1889,6 @@ __end:
 } // SEMA_body__() 
 
 #include "TCP_commun.h"
+#include "MQTT.h"
 
 #endif //_IEC_STD_FB_H

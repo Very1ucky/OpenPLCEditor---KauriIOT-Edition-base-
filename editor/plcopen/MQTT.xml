@@ -278,7 +278,7 @@
 ]]></xhtml:p></ST>
 </body>
 <documentation>
-<xhtml:p><![CDATA[Subscribe to a given TOPIC when SUBSCRIBE input is triggered. Upon a successfull subscription, SUCCESS is set to TRUE. Keep in mind that once you subscribe to a topic, OpenPLC will start receiving messages sent to that topic and storing them in a message pool. You must use the MQTT_RECEIVE block to retrieve messages from the pool and free up space to receive more messages. The maximum pool size is currently limited to 10 messages. If you let messages accumulate in the pool you will start loosing messages once the pool is full.]]></xhtml:p>
+<xhtml:p><![CDATA[Subscribe to a given TOPIC when SUBSCRIBE input is triggered. Upon a successfull subscription, SUCCESS is set to TRUE. Keep in mind that once you subscribe to a topic, OpenPLC will start receiving messages sent to that topic and storing them in a message pool. You must use the MQTT_RECEIVE block to retrieve messages from the pool and free up space to receive more messages. The maximum pool size is currently limited to 1 messages per topic. If you let messages accumulate in the pool you will start loosing messages once the pool is full.]]></xhtml:p>
 </documentation>
 </pou><pou name="MQTT_UNSUBSCRIBE" pouType="functionBlock">
 <interface>
@@ -321,7 +321,7 @@
 ]]></xhtml:p></ST>
 </body>
 <documentation>
-<xhtml:p><![CDATA[Unsubscribe to a given TOPIC when UNSUBSCRIBE input is triggered. Upon a successfull unsubscription, SUCCESS is set to TRUE. Keep in mind that once you unsubscribe to a topic, OpenPLC will stop storing messages sent to that topic in the message pool. However, messages received previously and not captured with a MQTT_RECEIVE block will remain in the pool using up pool space.]]></xhtml:p>
+<xhtml:p><![CDATA[Unsubscribe to a given TOPIC when UNSUBSCRIBE input is triggered. Upon a successfull unsubscription, SUCCESS is set to TRUE. Keep in mind that once you unsubscribe to a topic, OpenPLC will stop storing messages sent to that topic in the message pool.]]></xhtml:p>
 </documentation>
 </pou><pou name="MQTT_DISCONNECT" pouType="functionBlock">
 <interface>
