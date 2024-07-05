@@ -8,7 +8,7 @@ typedef struct {
   __DECLARE_VAR(BOOL,ENO)
   __DECLARE_VAR(BOOL,RECEIVE)
   __DECLARE_VAR(STRING,TOPIC)
-  __DECLARE_VAR(BOOL,RECEIVED)
+  __DECLARE_VAR(BOOL,SUCCESS)
   __DECLARE_VAR(STRING,MESSAGE)
 
   // FB private variables - TEMP, private and located variables
@@ -141,7 +141,7 @@ static void MQTT_RECEIVE_init__(MQTT_RECEIVE *data__, BOOL retain) {
   __INIT_VAR(data__->ENO,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->RECEIVE,__BOOL_LITERAL(FALSE),retain)
   __INIT_VAR(data__->TOPIC,__STRING_LITERAL(0,""),retain)
-  __INIT_VAR(data__->RECEIVED,__BOOL_LITERAL(FALSE),retain)
+  __INIT_VAR(data__->SUCCESS,__BOOL_LITERAL(FALSE),retain)
   __INIT_VAR(data__->MESSAGE,__STRING_LITERAL(0,""),retain)
 }
 
@@ -165,16 +165,16 @@ static void MQTT_RECEIVE_body__(MQTT_RECEIVE *data__) {
     __GET_VAR(data__->MESSAGE).len = strlen(__GET_VAR(data__->MESSAGE).body);
     if (__GET_VAR(data__->MESSAGE).len > 0)
     {
-      __SET_VAR(data__->,RECEIVED,,1);
+      __SET_VAR(data__->,SUCCESS,,1);
     }
     else
     {
-      __SET_VAR(data__->,RECEIVED,,0);
+      __SET_VAR(data__->,SUCCESS,,0);
     }
   }
   else
   {
-    __SET_VAR(data__->,RECEIVED,,0);
+    __SET_VAR(data__->,SUCCESS,,0);
   }
 
   goto __end;

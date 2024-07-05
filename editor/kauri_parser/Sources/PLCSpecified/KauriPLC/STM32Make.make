@@ -22,7 +22,7 @@ TARGET = PLC_Logic
 # debug build?
 DEBUG = 0
 # optimization
-OPT = -O0
+OPT = -O3
 
 
 #######################################

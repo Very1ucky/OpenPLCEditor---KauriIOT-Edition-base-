@@ -2272,6 +2272,7 @@ void trace_reset(void);
             dialog.ShowModal()
             isNeedToDebug = dialog.debug_after_transfer.GetValue()
             if isNeedToDebug:
+                time.sleep(1)
                 self._debugPLCWithoutBuild()
 
     def _Repair(self):

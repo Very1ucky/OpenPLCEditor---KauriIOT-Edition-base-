@@ -40,12 +40,12 @@
 <localVars>
 </localVars>
 <outputVars>
-<variable name="RECEIVED">
+<variable name="SUCCESS">
 <type>
 <BOOL/>
 </type>
 <documentation>
-<xhtml:p><![CDATA[RECEIVED]]></xhtml:p>
+<xhtml:p><![CDATA[SUCCESS]]></xhtml:p>
 </documentation>
 </variable>
 <variable name="MESSAGE">
@@ -61,12 +61,12 @@
 <body>
 <ST>
 <xhtml:p><![CDATA[
-  RECEIVED := 0;
+  SUCCESS := 0;
 
 ]]></xhtml:p></ST>
 </body>
 <documentation>
-<xhtml:p><![CDATA[Receive MQTT messages for a particular TOPIC when RECEIVE is active. You must subscribe to a topic first before you can start receiving messages for that particular topic. Once a message is received, RECEIVED output is triggered, and MESSAGE will contain the received message as a STRING.]]></xhtml:p>
+<xhtml:p><![CDATA[Receive MQTT messages for a particular TOPIC when RECEIVE is active. You must subscribe to a topic first before you can start receiving messages for that particular topic. Once a message is received, SUCCESS output is triggered, and MESSAGE will contain the received message as a STRING.]]></xhtml:p>
 </documentation>
 </pou><pou name="MQTT_SEND" pouType="functionBlock">
 <interface>
