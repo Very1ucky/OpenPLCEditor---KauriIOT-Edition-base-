@@ -69,7 +69,7 @@ class PlcProgramBuilder:
             self.outputIntoCompileWindow(f"Transfer error ({e})\n")
             self.build_failed = True
         except Exception as e:
-            self.outputIntoCompileWindow(f"Compilation or trabsfer error ({e})\n")
+            self.outputIntoCompileWindow(f"Compilation or transfer error ({e})\n")
             self.build_failed = True
 
         self._saveLogs(os.path.join(self.base_folder, "last_build_logs.txt"))
@@ -134,7 +134,7 @@ class PlcProgramBuilder:
 
         if serial_transfer_en:
             send_client = ModbusSendClient(
-                modbus_type="RTU", serial_port=port, baudrate=115200, slave_id=1
+                modbus_type="RTU", serial_port=port, baudrate=256000, slave_id=1
             )
         else:
             ip_and_port = port.split(":")

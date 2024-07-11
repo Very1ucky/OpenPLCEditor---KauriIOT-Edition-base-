@@ -105,7 +105,7 @@ def GetTCPServerMemAreaPrinted(self, child, nodeid):
 
 
 modbus_serial_baudrate_list = [
-    "110", "300", "600", "1200", "2400", "4800", "9600", "19200", "38400", "57600", "115200"]
+    "110", "300", "600", "1200", "2400", "4800", "9600", "19200", "38400", "57600", "115200", "256000"]
 modbus_serial_stopbits_list = ["1", "2"]
 modbus_serial_parity_dict = {"none": 0, "odd": 1, "even": 2}
 

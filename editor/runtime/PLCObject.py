@@ -104,7 +104,7 @@ class PLCObject(object):
         self.remote = None
         self.tracesList = []
         self.slaveid = 0
-        self.baud = 115200
+        self.baud = 256000
         self.comport = 'COM1'
         self.ip = '127.0.0.1'
         self.ipport = 502

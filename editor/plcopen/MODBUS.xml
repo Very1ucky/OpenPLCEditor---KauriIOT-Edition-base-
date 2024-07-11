@@ -40,7 +40,7 @@
             </variable>
             <variable name="REQ_TIMEOUT">
               <type>
-                <UINT/>
+                <TIME/>
               </type>
             </variable>
           </inputVars>

@@ -449,7 +449,7 @@ class KauriUploadDialog(wx.Dialog):
                 self.slaveid_txt.Enable(False)
                 self.serial_enable_programming.Enable(False)
                 self.serial_enable_programming.SetValue(True)
-                self.baud_rate_combo.SetValue(u"115200")
+                self.baud_rate_combo.SetValue(u"256000")
                 self.slaveid_txt.SetLabelText(u"1")
             else:
                 self.baud_rate_combo.Enable(True)

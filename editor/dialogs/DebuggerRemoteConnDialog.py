@@ -79,8 +79,8 @@ class DebuggerRemoteConnDialog(wx.Dialog):
 
         fgSizer1.Add( self.m_staticText4, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
-        comboBaudChoices = [ u"9600", u"14400", u"19200", u"38400", u"57600", u"115200" ]
-        self.comboBaud = wx.ComboBox( self, wx.ID_ANY, u"115200", wx.DefaultPosition, wx.Size( 80,-1 ), comboBaudChoices, 0 )
+        comboBaudChoices = [ u"9600", u"14400", u"19200", u"38400", u"57600", u"115200", u"256000" ]
+        self.comboBaud = wx.ComboBox( self, wx.ID_ANY, u"256000", wx.DefaultPosition, wx.Size( 80,-1 ), comboBaudChoices, 0 )
         self.comboBaud.SetSelection( 5 )
         fgSizer1.Add( self.comboBaud, 0, wx.ALL, 5 )
 
@@ -174,7 +174,7 @@ class DebuggerRemoteConnDialog(wx.Dialog):
         # Defaults
         mode = 'TCP'
         slaveid = 1
-        baud = 115200
+        baud = 256000
         serialPort = 'COM1'
         ip = '127.0.0.1'
         ipport = 502

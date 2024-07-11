@@ -8,7 +8,7 @@ typedef struct {
   __DECLARE_VAR(BOOL,CONNECT)
   __DECLARE_VAR(STRING,ADDRESS)
   __DECLARE_VAR(UINT,PORT)
-  __DECLARE_VAR(UINT,REQ_TIMEOUT)
+  __DECLARE_VAR(TIME,REQ_TIMEOUT)
   __DECLARE_VAR(BOOL,SUCCESS)
 
   // FB private variables - TEMP, private and located variables
@@ -167,7 +167,7 @@ static void MODBUS_TCP_CONNECT_init__(MODBUS_TCP_CONNECT *data__, BOOL retain) {
   __INIT_VAR(data__->CONNECT,__BOOL_LITERAL(FALSE),retain)
   __INIT_VAR(data__->ADDRESS,__STRING_LITERAL(0,""),retain)
   __INIT_VAR(data__->PORT,502,retain)
-  __INIT_VAR(data__->REQ_TIMEOUT,0,retain)
+  __INIT_VAR(data__->REQ_TIMEOUT,__time_to_timespec(1, 0, 0, 0, 0, 0),retain)
   __INIT_VAR(data__->SUCCESS,__BOOL_LITERAL(FALSE),retain)
 }
 
@@ -188,7 +188,15 @@ static void MODBUS_TCP_CONNECT_body__(MODBUS_TCP_CONNECT *data__) {
     // Make sure strings are NULL terminated
     __GET_VAR(data__->ADDRESS).body[__GET_VAR(data__->ADDRESS).len] = '\0';
 
-    result = modbus_tcp_connect(__GET_VAR(data__->ADDRESS).body, __GET_VAR(data__->PORT), __GET_VAR(data__->REQ_TIMEOUT));
+    uint16_t timeout = REAL_TO_UINT(
+    (BOOL)__BOOL_LITERAL(TRUE),
+    NULL,
+    (REAL)(TIME_TO_REAL(
+      (BOOL)__BOOL_LITERAL(TRUE),
+      NULL,
+      (TIME)__GET_VAR(data__->REQ_TIMEOUT)) * 1000.0));
+
+    result = modbus_tcp_connect(__GET_VAR(data__->ADDRESS).body, __GET_VAR(data__->PORT), timeout);
   }
 
   __SET_VAR(data__->,SUCCESS,,result);

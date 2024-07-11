@@ -77,7 +77,7 @@ class MB_StopBits(annotate.Choice):
 
 
 class MB_Baud(annotate.Choice):
-    _choices = [110, 300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
+    _choices = [110, 300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 256000]
 
     def coerce(self, val, configurable):
         return int(val)
