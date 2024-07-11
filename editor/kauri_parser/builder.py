@@ -69,7 +69,7 @@ class PlcProgramBuilder:
             self.outputIntoCompileWindow(f"Transfer error ({e})\n")
             self.build_failed = True
         except Exception as e:
-            self.outputIntoCompileWindow(f"Compilation error ({e})\n")
+            self.outputIntoCompileWindow(f"Compilation or trabsfer error ({e})\n")
             self.build_failed = True
 
         self._saveLogs(os.path.join(self.base_folder, "last_build_logs.txt"))
@@ -1041,7 +1041,7 @@ class ModbusSendClient:
                 # return ''
 
                 self.serial.write(request)
-                response = self.serial.read(1024)
+                response = self.serial.read(size - 4)
                 if response is None or len(response) < 2:
                     return None
 

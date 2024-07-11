@@ -1890,6 +1890,6 @@ __end:
 
 #include "TCP_commun.h"
 #include "MQTT.h"
-//#include "MODBUS.h"
+#include "MODBUS.h"
 
 #endif //_IEC_STD_FB_H

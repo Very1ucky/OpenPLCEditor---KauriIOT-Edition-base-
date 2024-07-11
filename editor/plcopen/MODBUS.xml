@@ -57,6 +57,9 @@
             <xhtml:p><![CDATA[SUCCESS := 0;]]></xhtml:p>
           </ST>
         </body>
+        <documentation>
+          <xhtml:p><![CDATA[Connects to the modbus tcp server with specified ADDRESS and PORT when CONNECT is set to TRUE. ADDRESS is STRING which can be represented as ipv4 (ex: 127.0.0.1) or as domain name (ex: www.google.com), default PORT is 502. REQ_TIMEOUT defines max waiting time to response after request. To change connection parameter you need to call MODBUS_TCP_DISCONNECT first. Upon a successful connection, SUCCESS is set to TRUE.]]></xhtml:p>
+        </documentation>
       </pou>
       <pou name="MODBUS_READ_COILS" pouType="functionBlock">
         <interface>
@@ -110,6 +113,9 @@
             <xhtml:p><![CDATA[SUCCESS := 0;]]></xhtml:p>
           </ST>
         </body>
+        <documentation>
+          <xhtml:p><![CDATA[Reads coils using modbus (START_ADDRESS - address of first register, COUNT - registers count). If TCP set to true when connection to modbus tcp server will be used, otherwise modbus rtu will be used. Upon a successful operation, SUCCESS is set to TRUE and RESPONSE will be filled with requested values (each RESPONSE element type is BOOL, max ARRAY size is 128, indexes start from 0).]]></xhtml:p>
+        </documentation>
       </pou>
       <pou name="MODBUS_READ_DISCRETE_INPUTS" pouType="functionBlock">
         <interface>
@@ -163,6 +169,9 @@
             <xhtml:p><![CDATA[SUCCESS := 0;]]></xhtml:p>
           </ST>
         </body>
+        <documentation>
+          <xhtml:p><![CDATA[Reads discrete inputs using modbus (START_ADDRESS - address of first register, COUNT - registers count). If TCP set to true when connection to modbus tcp server will be used, otherwise modbus rtu will be used. Upon a successful operation, SUCCESS is set to TRUE and RESPONSE will be filled with requested values (each RESPONSE element type is BOOL, max ARRAY size is 128, indexes start from 0).]]></xhtml:p>
+        </documentation>
       </pou>
       <pou name="MODBUS_READ_HOLDING_REGISTERS" pouType="functionBlock">
         <interface>
@@ -216,6 +225,9 @@
             <xhtml:p><![CDATA[SUCCESS := 0;]]></xhtml:p>
           </ST>
         </body>
+        <documentation>
+          <xhtml:p><![CDATA[Reads holding registers using modbus (START_ADDRESS - address of first register, COUNT - registers count). If TCP set to true when connection to modbus tcp server will be used, otherwise modbus rtu will be used. Upon a successful operation, SUCCESS is set to TRUE and RESPONSE will be filled with requested values (each RESPONSE element type is WORD, max ARRAY size is 128, indexes start from 0).]]></xhtml:p>
+        </documentation>
       </pou>
       <pou name="MODBUS_READ_INPUT_REGISTERS" pouType="functionBlock">
         <interface>
@@ -269,6 +281,9 @@
             <xhtml:p><![CDATA[SUCCESS := 0;]]></xhtml:p>
           </ST>
         </body>
+        <documentation>
+          <xhtml:p><![CDATA[Reads input registers using modbus (START_ADDRESS - address of first register, COUNT - registers count). If TCP set to true when connection to modbus tcp server will be used, otherwise modbus rtu will be used. Upon a successful operation, SUCCESS is set to TRUE and RESPONSE will be filled with requested values (each RESPONSE element type is WORD, max ARRAY size is 128, indexes start from 0).]]></xhtml:p>
+        </documentation>
       </pou>
             <pou name="MODBUS_WRITE_SINGLE_COIL" pouType="functionBlock">
         <interface>
@@ -312,6 +327,9 @@
             <xhtml:p><![CDATA[SUCCESS := 0;]]></xhtml:p>
           </ST>
         </body>
+        <documentation>
+          <xhtml:p><![CDATA[Writes a new value to the specified modbus coil. If TCP set to true when connection to modbus tcp server will be used, otherwise modbus rtu will be used. Upon a successful operation, SUCCESS is set to TRUE.]]></xhtml:p>
+        </documentation>
       </pou>
       <pou name="MODBUS_WRITE_SINGLE_REGISTER" pouType="functionBlock">
         <interface>
@@ -355,6 +373,9 @@
             <xhtml:p><![CDATA[SUCCESS := 0;]]></xhtml:p>
           </ST>
         </body>
+        <documentation>
+          <xhtml:p><![CDATA[Writes a new value to the specified modbus register. If TCP set to true when connection to modbus tcp server will be used, otherwise modbus rtu will be used. Upon a successful operation, SUCCESS is set to TRUE.]]></xhtml:p>
+        </documentation>
       </pou>
       <pou name="MODBUS_TCP_DISCONNECT" pouType="functionBlock">
         <interface>
@@ -380,6 +401,9 @@
 
 ]]></xhtml:p></ST>
         </body>
+        <documentation>
+          <xhtml:p><![CDATA[Disconnects from current modbus tcp server when DISCONNECT is set to TRUE. Upon a successful disconnection, SUCCESS is set to TRUE.]]></xhtml:p>
+        </documentation>
       </pou>
 </pous>
 </types>

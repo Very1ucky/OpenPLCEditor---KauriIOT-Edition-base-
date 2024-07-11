@@ -14,14 +14,14 @@
 #define MQTT_SUBSCRIBE ((void **)(START_ADDR))[10]
 #define MQTT_UNSUBSCRIBE ((void **)(START_ADDR))[11]
 #define MQTT_DISCONNECT ((void **)(START_ADDR))[12]
-#define MODBUS_TCP_CONNECT ((void **)(START_ADDR))[13]
-#define MODBUS_TCP_READ_COILS ((void **)(START_ADDR))[14]
-#define MODBUS_TCP_READ_DISCRETE_INPUTS ((void **)(START_ADDR))[15]
-#define MODBUS_TCP_READ_HOLDING_REGISTERS ((void **)(START_ADDR))[16]
-#define MODBUS_TCP_READ_INPUT_REGISTERS ((void **)(START_ADDR))[17]
-#define MODBUS_TCP_WRITE_SINGLE_COIL ((void **)(START_ADDR))[18]
-#define MODBUS_TCP_WRITE_SINGLE_REGISTER ((void **)(START_ADDR))[19]
-#define MODBUS_TCP_DISCONNECT ((void **)(START_ADDR))[20]
+#define MODBUS_TCP_CONNECT_FUNC ((void **)(START_ADDR))[13]
+#define MODBUS_READ_COILS_FUNC ((void **)(START_ADDR))[14]
+#define MODBUS_READ_DISCRETE_INPUTS_FUNC ((void **)(START_ADDR))[15]
+#define MODBUS_READ_HOLDING_REGISTERS_FUNC ((void **)(START_ADDR))[16]
+#define MODBUS_READ_INPUT_REGISTERS_FUNC ((void **)(START_ADDR))[17]
+#define MODBUS_WRITE_SINGLE_COIL_FUNC ((void **)(START_ADDR))[18]
+#define MODBUS_WRITE_SINGLE_REGISTER_FUNC ((void **)(START_ADDR))[19]
+#define MODBUS_TCP_DISCONNECT_FUNC ((void **)(START_ADDR))[20]
 
 
 int LogMessage(uint8_t level, char* buf, uint32_t size) {
@@ -85,41 +85,41 @@ bool mqtt_disconnect() {
 }
 
 bool modbus_tcp_connect(char *address, uint16_t port, uint16_t req_timeout) {
-    bool (*temp)(char *, uint16_t, uint16_t) = (bool (*)(char *, uint16_t, uint16_t))(MODBUS_TCP_CONNECT);
+    bool (*temp)(char *, uint16_t, uint16_t) = (bool (*)(char *, uint16_t, uint16_t))(MODBUS_TCP_CONNECT_FUNC);
     return temp(address, port, req_timeout);
 }
 
 bool modbus_read_coils(uint16_t start_address, uint8_t slave_id, uint16_t count, bool is_tcp, bool *response) {
-    bool (*temp)(uint16_t, uint8_t, uint16_t, bool, bool *) = (bool (*)(uint16_t, uint8_t, uint16_t, bool, bool *))(MODBUS_TCP_READ_COILS);
+    bool (*temp)(uint16_t, uint8_t, uint16_t, bool, bool *) = (bool (*)(uint16_t, uint8_t, uint16_t, bool, bool *))(MODBUS_READ_COILS_FUNC);
     return temp(start_address, slave_id, count, is_tcp, response);
 }
 
 bool modbus_read_discrete_inputs(uint16_t start_address, uint8_t slave_id, uint16_t count, bool is_tcp, bool *response) {
-    bool (*temp)(uint16_t, uint8_t, uint16_t, bool, bool *) = (bool (*)(uint16_t, uint8_t, uint16_t, bool, bool *))(MODBUS_TCP_READ_DISCRETE_INPUTS);
+    bool (*temp)(uint16_t, uint8_t, uint16_t, bool, bool *) = (bool (*)(uint16_t, uint8_t, uint16_t, bool, bool *))(MODBUS_READ_DISCRETE_INPUTS_FUNC);
     return temp(start_address, slave_id, count, is_tcp, response);
 }
 
 bool modbus_read_holding_registers(uint16_t start_address, uint8_t slave_id, uint16_t count, bool is_tcp, uint16_t *response) {
-    bool (*temp)(uint16_t, uint8_t, uint16_t, bool, uint16_t *) = (bool (*)(uint16_t, uint8_t, uint16_t, bool, uint16_t *))(MODBUS_TCP_READ_HOLDING_REGISTERS);
+    bool (*temp)(uint16_t, uint8_t, uint16_t, bool, uint16_t *) = (bool (*)(uint16_t, uint8_t, uint16_t, bool, uint16_t *))(MODBUS_READ_HOLDING_REGISTERS_FUNC);
     return temp(start_address, slave_id, count, is_tcp, response);
 }
 
 bool modbus_read_input_registers(uint16_t start_address, uint8_t slave_id, uint16_t count, bool is_tcp, uint16_t *response) {
-    bool (*temp)(uint16_t, uint8_t, uint16_t, bool, uint16_t *) = (bool (*)(uint16_t, uint8_t, uint16_t, bool, uint16_t *))(MODBUS_TCP_READ_INPUT_REGISTERS);
+    bool (*temp)(uint16_t, uint8_t, uint16_t, bool, uint16_t *) = (bool (*)(uint16_t, uint8_t, uint16_t, bool, uint16_t *))(MODBUS_READ_INPUT_REGISTERS_FUNC);
     return temp(start_address, slave_id, count, is_tcp, response);
 }
 
 bool modbus_write_single_coil(uint16_t address, uint8_t slave_id, bool new_value, bool is_tcp) {
-    bool (*temp)(uint16_t, uint8_t, bool, bool) = (bool (*)(uint16_t, uint8_t, bool, bool))(MODBUS_TCP_WRITE_SINGLE_COIL);
+    bool (*temp)(uint16_t, uint8_t, bool, bool) = (bool (*)(uint16_t, uint8_t, bool, bool))(MODBUS_WRITE_SINGLE_COIL_FUNC);
     return temp(address, slave_id, new_value, is_tcp);
 }
 
 bool modbus_write_single_register(uint16_t address, uint8_t slave_id, uint16_t new_value, bool is_tcp) {
-    bool (*temp)(uint16_t, uint8_t, uint16_t, bool) = (bool (*)(uint16_t, uint8_t, uint16_t, bool))(MODBUS_TCP_WRITE_SINGLE_REGISTER);
+    bool (*temp)(uint16_t, uint8_t, uint16_t, bool) = (bool (*)(uint16_t, uint8_t, uint16_t, bool))(MODBUS_WRITE_SINGLE_REGISTER_FUNC);
     return temp(address, slave_id, new_value, is_tcp);
 }
 
 bool modbus_tcp_disconnect() {
-    bool (*temp)() = (bool (*)())(MODBUS_TCP_DISCONNECT);
+    bool (*temp)() = (bool (*)())(MODBUS_TCP_DISCONNECT_FUNC);
     return temp();
 }
