@@ -1433,6 +1433,15 @@ void trace_reset(void);
                 self.logger.write_error(name + _(" generation failed !\n"))
                 self.logger.write_error(traceback.format_exc())
                 return False
+            
+        with open(os.path.join(buildpath, "POUS.h"), "r") as f:
+            lines = f.readlines()
+        with open(os.path.join(buildpath, "POUS.h"), "w") as f:
+            for line in lines:
+                if line.startswith("__DECLARE_ARRAY_TYPE(__ARRAY_OF_BYTE_128") or line.startswith("__DECLARE_ARRAY_TYPE(__ARRAY_OF_WORD_128") or line.startswith("__DECLARE_ARRAY_TYPE(__ARRAY_OF_BOOL_128"):
+                    line = "//" + line
+                f.write(line)
+            
         self.logger.write(_("C code generated successfully.\n"))
         return True
 
