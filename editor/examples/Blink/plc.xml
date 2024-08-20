@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <project xmlns:ns1="http://www.plcopen.org/xml/tc6_0201" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.plcopen.org/xml/tc6_0201">
   <fileHeader companyName="Unknown" productName="Unnamed" productVersion="1" creationDateTime="2022-08-16T15:49:17"/>
-  <contentHeader name="Unnamed" modificationDateTime="2024-08-20T11:24:16">
+  <contentHeader name="Unnamed" modificationDateTime="2024-08-20T16:34:18">
     <coordinateInfo>
       <fbd>
         <scaling x="10" y="10"/>
@@ -33,36 +33,6 @@
             <variable name="TOF0">
               <type>
                 <derived name="TOF"/>
-              </type>
-            </variable>
-            <variable name="RS485_CONNECT0">
-              <type>
-                <derived name="RS485_CONNECT"/>
-              </type>
-            </variable>
-            <variable name="RS485_SEND_BYTES0">
-              <type>
-                <derived name="RS485_SEND_BYTES"/>
-              </type>
-            </variable>
-            <variable name="RS485_START_RECEIVING0">
-              <type>
-                <derived name="RS485_START_RECEIVING"/>
-              </type>
-            </variable>
-            <variable name="RS485_DISCONNECT0">
-              <type>
-                <derived name="RS485_DISCONNECT"/>
-              </type>
-            </variable>
-            <variable name="RS485_GET_NEXT_RECEIVED_PACKET0">
-              <type>
-                <derived name="RS485_GET_NEXT_RECEIVED_PACKET"/>
-              </type>
-            </variable>
-            <variable name="RS485_STOP_RECEIVING0">
-              <type>
-                <derived name="RS485_STOP_RECEIVING"/>
               </type>
             </variable>
             <variable name="RS485_STOP_RECEIVING1">
@@ -361,144 +331,6 @@
                 <xhtml:p><![CDATA[This example cascades two timers (TON and TOF) to generate a square wave. The width of the wave is determined by the size of the PT variable on both timers.]]></xhtml:p>
               </content>
             </comment>
-            <block localId="10" typeName="RS485_CONNECT" instanceName="RS485_CONNECT0" width="280" height="100">
-              <position x="210" y="310"/>
-              <inputVariables>
-                <variable formalParameter="CONNECT">
-                  <connectionPointIn>
-                    <relPosition x="0" y="30"/>
-                  </connectionPointIn>
-                </variable>
-                <variable formalParameter="ENABLE_TERMINAL_RESISTORS">
-                  <connectionPointIn>
-                    <relPosition x="0" y="50"/>
-                  </connectionPointIn>
-                </variable>
-                <variable formalParameter="BAUDRATE">
-                  <connectionPointIn>
-                    <relPosition x="0" y="70"/>
-                  </connectionPointIn>
-                </variable>
-                <variable formalParameter="STOPBITS">
-                  <connectionPointIn>
-                    <relPosition x="0" y="90"/>
-                  </connectionPointIn>
-                </variable>
-              </inputVariables>
-              <inOutVariables/>
-              <outputVariables>
-                <variable formalParameter="SUCCESS">
-                  <connectionPointOut>
-                    <relPosition x="280" y="30"/>
-                  </connectionPointOut>
-                </variable>
-              </outputVariables>
-            </block>
-            <block localId="11" typeName="RS485_SEND_BYTES" instanceName="RS485_SEND_BYTES0" width="140" height="60">
-              <position x="360" y="450"/>
-              <inputVariables>
-                <variable formalParameter="SEND">
-                  <connectionPointIn>
-                    <relPosition x="0" y="30"/>
-                  </connectionPointIn>
-                </variable>
-                <variable formalParameter="MESSAGE">
-                  <connectionPointIn>
-                    <relPosition x="0" y="50"/>
-                  </connectionPointIn>
-                </variable>
-              </inputVariables>
-              <inOutVariables/>
-              <outputVariables>
-                <variable formalParameter="SUCCESS">
-                  <connectionPointOut>
-                    <relPosition x="140" y="30"/>
-                  </connectionPointOut>
-                </variable>
-              </outputVariables>
-            </block>
-            <block localId="12" typeName="RS485_START_RECEIVING" instanceName="RS485_START_RECEIVING0" width="230" height="60">
-              <position x="660" y="370"/>
-              <inputVariables>
-                <variable formalParameter="START">
-                  <connectionPointIn>
-                    <relPosition x="0" y="30"/>
-                  </connectionPointIn>
-                </variable>
-                <variable formalParameter="RECEIVE_PACKET_SIZE">
-                  <connectionPointIn>
-                    <relPosition x="0" y="50"/>
-                  </connectionPointIn>
-                </variable>
-              </inputVariables>
-              <inOutVariables/>
-              <outputVariables>
-                <variable formalParameter="SUCCESS">
-                  <connectionPointOut>
-                    <relPosition x="230" y="30"/>
-                  </connectionPointOut>
-                </variable>
-              </outputVariables>
-            </block>
-            <block localId="13" typeName="RS485_DISCONNECT" instanceName="RS485_DISCONNECT0" width="160" height="40">
-              <position x="770" y="450"/>
-              <inputVariables>
-                <variable formalParameter="DISCONNECT">
-                  <connectionPointIn>
-                    <relPosition x="0" y="30"/>
-                  </connectionPointIn>
-                </variable>
-              </inputVariables>
-              <inOutVariables/>
-              <outputVariables>
-                <variable formalParameter="SUCCESS">
-                  <connectionPointOut>
-                    <relPosition x="160" y="30"/>
-                  </connectionPointOut>
-                </variable>
-              </outputVariables>
-            </block>
-            <block localId="14" typeName="RS485_GET_NEXT_RECEIVED_PACKET" instanceName="RS485_GET_NEXT_RECEIVED_PACKET0" width="260" height="60">
-              <position x="670" y="530"/>
-              <inputVariables>
-                <variable formalParameter="GET">
-                  <connectionPointIn>
-                    <relPosition x="0" y="30"/>
-                  </connectionPointIn>
-                </variable>
-              </inputVariables>
-              <inOutVariables/>
-              <outputVariables>
-                <variable formalParameter="RECEIVED_PACKET_SIZE">
-                  <connectionPointOut>
-                    <relPosition x="260" y="30"/>
-                  </connectionPointOut>
-                </variable>
-                <variable formalParameter="RECEIVED_PACKET">
-                  <connectionPointOut>
-                    <relPosition x="260" y="50"/>
-                  </connectionPointOut>
-                </variable>
-              </outputVariables>
-            </block>
-            <block localId="15" typeName="RS485_STOP_RECEIVING" instanceName="RS485_STOP_RECEIVING0" width="180" height="40">
-              <position x="340" y="560"/>
-              <inputVariables>
-                <variable formalParameter="STOP">
-                  <connectionPointIn>
-                    <relPosition x="0" y="30"/>
-                  </connectionPointIn>
-                </variable>
-              </inputVariables>
-              <inOutVariables/>
-              <outputVariables>
-                <variable formalParameter="SUCCESS">
-                  <connectionPointOut>
-                    <relPosition x="180" y="30"/>
-                  </connectionPointOut>
-                </variable>
-              </outputVariables>
-            </block>
           </LD>
         </body>
       </pou>
