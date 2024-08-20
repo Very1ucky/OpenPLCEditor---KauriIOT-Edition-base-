@@ -1888,8 +1888,13 @@ __end:
   return;
 } // SEMA_body__() 
 
+__DECLARE_ARRAY_TYPE(__ARRAY_OF_BOOL_128,BOOL,[128])
+__DECLARE_ARRAY_TYPE(__ARRAY_OF_BYTE_128,BYTE,[128])
+__DECLARE_ARRAY_TYPE(__ARRAY_OF_WORD_128,WORD,[128])
+
 #include "TCP_commun.h"
 #include "MQTT.h"
 #include "MODBUS.h"
+#include "RS485.h"
 
 #endif //_IEC_STD_FB_H

@@ -1,0 +1,222 @@
+<?xml version='1.0' encoding='utf-8'?>
+<project xmlns:ns1="http://www.plcopen.org/xml/tc6_0201" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.plcopen.org/xml/tc6_0201">
+<fileHeader companyName="OpenPLC" productName="MQTT" productVersion="1.0" creationDateTime="2023-04-26T04:54:00"/>
+<contentHeader name="MQTT" author="OpenPLC Lib Writter" modificationDateTime="2023-04-26T04:54:00">
+<coordinateInfo>
+<fbd>
+<scaling x="0" y="0"/>
+</fbd>
+<ld>
+<scaling x="0" y="0"/>
+</ld>
+<sfc>
+<scaling x="0" y="0"/>
+</sfc>
+</coordinateInfo>
+</contentHeader>
+<types>
+<pous>
+<pou name="RS485_CONNECT" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="CONNECT">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="ENABLE_TERMINAL_RESISTORS">
+              <type>
+                <BOOL/>
+              </type>
+              <initialValue>
+                <simpleValue value="TRUE"/>
+              </initialValue>
+            </variable>
+            <variable name="BAUDRATE">
+              <type>
+                <UDINT/>
+              </type>
+              <initialValue>
+                <simpleValue value="115200"/>
+              </initialValue>
+            </variable>
+            <variable name="STOPBITS">
+              <type>
+                <USINT/>
+              </type>
+              <initialValue>
+                <simpleValue value="1"/>
+              </initialValue>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="SUCCESS">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+          </outputVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p><![CDATA[SUCCESS := FALSE;]]></xhtml:p>
+          </ST>
+        </body>
+        <documentation>
+<xhtml:p><![CDATA[Setups RS-485 interface to send and receive data through serial wire when CONNECT is triggered. If setup is successful, SUCCESS is set to TRUE. Interface transfer BAUDRATE and STOPBITS can be configured. Also there is an opportunity to control terminal resistors via ENABLE_TERMINAL_RESISTORS flag.]]></xhtml:p>
+</documentation>
+      </pou>
+      <pou name="RS485_SEND_BYTES" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="SEND">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="MESSAGE_SIZE">
+              <type>
+                <USINT/>
+              </type>
+            </variable>
+            <variable name="MESSAGE">
+              <type>
+                <array>
+                  <dimension lower="0" upper="127"/>
+                  <baseType>
+                    <BYTE/>
+                  </baseType>
+                </array>
+              </type>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="SUCCESS">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+          </outputVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p><![CDATA[SUCCESS := FALSE;]]></xhtml:p>
+          </ST>
+        </body>
+        <documentation>
+<xhtml:p><![CDATA[Sends a MESSAGE through RS-485 interface. If the sending was successful then SUCCESS is set to TRUE. If receiving has already been started then the message can't be sent. (max MESSAGE ARRAY size is 128 bytes, indexes start from 0).]]></xhtml:p>
+</documentation>
+      </pou>
+      <pou name="RS485_START_RECEIVING" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="START">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="RECEIVE_PACKET_SIZE">
+              <type>
+                <USINT/>
+              </type>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="SUCCESS">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+          </outputVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p><![CDATA[SUCCESS := FALSE;]]></xhtml:p>
+          </ST>
+        </body>
+      </pou>
+      <pou name="RS485_DISCONNECT" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="DISCONNECT">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="SUCCESS">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+          </outputVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p><![CDATA[SUCCESS := FALSE;]]></xhtml:p>
+          </ST>
+        </body>
+      </pou>
+      <pou name="RS485_GET_NEXT_RECEIVED_PACKET" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="GET">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="RECEIVED_PACKET_SIZE">
+              <type>
+                <USINT/>
+              </type>
+            </variable>
+            <variable name="RECEIVED_PACKET">
+              <type>
+                <array>
+                  <dimension lower="0" upper="127"/>
+                  <baseType>
+                    <BYTE/>
+                  </baseType>
+                </array>
+              </type>
+            </variable>
+          </outputVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p><![CDATA[RECEIVED_PACKET_SIZE := 0;]]></xhtml:p>
+          </ST>
+        </body>
+      </pou>
+      <pou name="RS485_STOP_RECEIVING" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="STOP">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+          </inputVars>
+          <outputVars>
+            <variable name="SUCCESS">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+          </outputVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml:p><![CDATA[SUCCESS := FALSE;]]></xhtml:p>
+          </ST>
+        </body>
+      </pou>
+</pous>
+</types>
+<instances>
+<configurations/>
+</instances>
+</project>

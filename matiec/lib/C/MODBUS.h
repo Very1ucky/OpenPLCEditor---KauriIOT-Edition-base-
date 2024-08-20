@@ -1,4 +1,3 @@
-
 // FUNCTION_BLOCK MODBUS_TCP_CONNECT
 
 typedef struct {
@@ -18,6 +17,7 @@ typedef struct {
 static void MODBUS_TCP_CONNECT_init__(MODBUS_TCP_CONNECT *data__, BOOL retain);
 // Code part
 static void MODBUS_TCP_CONNECT_body__(MODBUS_TCP_CONNECT *data__);
+
 // FUNCTION_BLOCK MODBUS_READ_COILS
 // Data part
 typedef struct {
@@ -60,6 +60,7 @@ typedef struct {
 static void MODBUS_READ_DISCRETE_INPUTS_init__(MODBUS_READ_DISCRETE_INPUTS *data__, BOOL retain);
 // Code part
 static void MODBUS_READ_DISCRETE_INPUTS_body__(MODBUS_READ_DISCRETE_INPUTS *data__);
+
 // FUNCTION_BLOCK MODBUS_READ_HOLDING_REGISTERS
 // Data part
 typedef struct {
@@ -159,7 +160,7 @@ static void MODBUS_TCP_DISCONNECT_init__(MODBUS_TCP_DISCONNECT *data__, BOOL ret
 // Code part
 static void MODBUS_TCP_DISCONNECT_body__(MODBUS_TCP_DISCONNECT *data__);
 
-static void MODBUS_TCP_CONNECT_init__(MODBUS_TCP_CONNECT *data__, BOOL retain) {
+void MODBUS_TCP_CONNECT_init__(MODBUS_TCP_CONNECT *data__, BOOL retain) {
   __INIT_VAR(data__->EN,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->ENO,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->CONNECT,__BOOL_LITERAL(FALSE),retain)
@@ -170,7 +171,7 @@ static void MODBUS_TCP_CONNECT_init__(MODBUS_TCP_CONNECT *data__, BOOL retain) {
 }
 
 // Code part
-static void MODBUS_TCP_CONNECT_body__(MODBUS_TCP_CONNECT *data__) {
+void MODBUS_TCP_CONNECT_body__(MODBUS_TCP_CONNECT *data__) {
   // Control execution
   if (!__GET_VAR(data__->EN)) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(FALSE));
@@ -180,24 +181,8 @@ static void MODBUS_TCP_CONNECT_body__(MODBUS_TCP_CONNECT *data__) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(TRUE));
   }
   // Initialise TEMP variables
-  bool result = false;
-  if (__GET_VAR(data__->CONNECT))
-  {
-    // Make sure strings are NULL terminated
-    __GET_VAR(data__->ADDRESS).body[__GET_VAR(data__->ADDRESS).len] = '\0';
 
-    uint16_t timeout = REAL_TO_UINT(
-    (BOOL)__BOOL_LITERAL(TRUE),
-    NULL,
-    (REAL)(TIME_TO_REAL(
-      (BOOL)__BOOL_LITERAL(TRUE),
-      NULL,
-      (TIME)__GET_VAR(data__->REQ_TIMEOUT)) * 1000.0));
-
-    result = modbus_tcp_connect(__GET_VAR(data__->ADDRESS).body, __GET_VAR(data__->PORT), timeout);
-  }
-
-  __SET_VAR(data__->,SUCCESS,,result);
+  __SET_VAR(data__->,SUCCESS,,0);
 
   goto __end;
 
@@ -209,7 +194,7 @@ __end:
 
 
 
-static void MODBUS_READ_COILS_init__(MODBUS_READ_COILS *data__, BOOL retain) {
+void MODBUS_READ_COILS_init__(MODBUS_READ_COILS *data__, BOOL retain) {
   __INIT_VAR(data__->EN,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->ENO,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->READ,__BOOL_LITERAL(FALSE),retain)
@@ -225,7 +210,7 @@ static void MODBUS_READ_COILS_init__(MODBUS_READ_COILS *data__, BOOL retain) {
 }
 
 // Code part
-static void MODBUS_READ_COILS_body__(MODBUS_READ_COILS *data__) {
+void MODBUS_READ_COILS_body__(MODBUS_READ_COILS *data__) {
   // Control execution
   if (!__GET_VAR(data__->EN)) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(FALSE));
@@ -235,14 +220,8 @@ static void MODBUS_READ_COILS_body__(MODBUS_READ_COILS *data__) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(TRUE));
   }
   // Initialise TEMP variables
-  bool result = false;
 
-  if (__GET_VAR(data__->READ))
-  {
-    result = modbus_read_coils(__GET_VAR(data__->START_ADDRESS), __GET_VAR(data__->SLAVE_ID), __GET_VAR(data__->COUNT), __GET_VAR(data__->TCP), __GET_VAR(data__->RESPONSE).table);
-  }
-
-  __SET_VAR(data__->,SUCCESS,,result);
+  __SET_VAR(data__->,SUCCESS,,0);
 
   goto __end;
 
@@ -254,7 +233,7 @@ __end:
 
 
 
-static void MODBUS_READ_DISCRETE_INPUTS_init__(MODBUS_READ_DISCRETE_INPUTS *data__, BOOL retain) {
+void MODBUS_READ_DISCRETE_INPUTS_init__(MODBUS_READ_DISCRETE_INPUTS *data__, BOOL retain) {
   __INIT_VAR(data__->EN,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->ENO,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->READ,__BOOL_LITERAL(FALSE),retain)
@@ -270,7 +249,7 @@ static void MODBUS_READ_DISCRETE_INPUTS_init__(MODBUS_READ_DISCRETE_INPUTS *data
 }
 
 // Code part
-static void MODBUS_READ_DISCRETE_INPUTS_body__(MODBUS_READ_DISCRETE_INPUTS *data__) {
+void MODBUS_READ_DISCRETE_INPUTS_body__(MODBUS_READ_DISCRETE_INPUTS *data__) {
   // Control execution
   if (!__GET_VAR(data__->EN)) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(FALSE));
@@ -280,14 +259,8 @@ static void MODBUS_READ_DISCRETE_INPUTS_body__(MODBUS_READ_DISCRETE_INPUTS *data
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(TRUE));
   }
   // Initialise TEMP variables
-  bool result = false;
 
-  if (__GET_VAR(data__->READ))
-  {
-    result = modbus_read_discrete_inputs(__GET_VAR(data__->START_ADDRESS), __GET_VAR(data__->SLAVE_ID), __GET_VAR(data__->COUNT), __GET_VAR(data__->TCP), __GET_VAR(data__->RESPONSE).table);
-  }
-
-  __SET_VAR(data__->,SUCCESS,,result);
+  __SET_VAR(data__->,SUCCESS,,0);
 
   goto __end;
 
@@ -299,7 +272,7 @@ __end:
 
 
 
-static void MODBUS_READ_HOLDING_REGISTERS_init__(MODBUS_READ_HOLDING_REGISTERS *data__, BOOL retain) {
+void MODBUS_READ_HOLDING_REGISTERS_init__(MODBUS_READ_HOLDING_REGISTERS *data__, BOOL retain) {
   __INIT_VAR(data__->EN,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->ENO,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->READ,__BOOL_LITERAL(FALSE),retain)
@@ -315,7 +288,7 @@ static void MODBUS_READ_HOLDING_REGISTERS_init__(MODBUS_READ_HOLDING_REGISTERS *
 }
 
 // Code part
-static void MODBUS_READ_HOLDING_REGISTERS_body__(MODBUS_READ_HOLDING_REGISTERS *data__) {
+void MODBUS_READ_HOLDING_REGISTERS_body__(MODBUS_READ_HOLDING_REGISTERS *data__) {
   // Control execution
   if (!__GET_VAR(data__->EN)) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(FALSE));
@@ -325,14 +298,8 @@ static void MODBUS_READ_HOLDING_REGISTERS_body__(MODBUS_READ_HOLDING_REGISTERS *
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(TRUE));
   }
   // Initialise TEMP variables
-  bool result = false;
 
-  if (__GET_VAR(data__->READ))
-  {
-    result = modbus_read_holding_registers(__GET_VAR(data__->START_ADDRESS), __GET_VAR(data__->SLAVE_ID), __GET_VAR(data__->COUNT), __GET_VAR(data__->TCP), __GET_VAR(data__->RESPONSE).table);
-  }
-
-  __SET_VAR(data__->,SUCCESS,,result);
+  __SET_VAR(data__->,SUCCESS,,0);
 
   goto __end;
 
@@ -344,7 +311,7 @@ __end:
 
 
 
-static void MODBUS_READ_INPUT_REGISTERS_init__(MODBUS_READ_INPUT_REGISTERS *data__, BOOL retain) {
+void MODBUS_READ_INPUT_REGISTERS_init__(MODBUS_READ_INPUT_REGISTERS *data__, BOOL retain) {
   __INIT_VAR(data__->EN,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->ENO,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->READ,__BOOL_LITERAL(FALSE),retain)
@@ -360,7 +327,7 @@ static void MODBUS_READ_INPUT_REGISTERS_init__(MODBUS_READ_INPUT_REGISTERS *data
 }
 
 // Code part
-static void MODBUS_READ_INPUT_REGISTERS_body__(MODBUS_READ_INPUT_REGISTERS *data__) {
+void MODBUS_READ_INPUT_REGISTERS_body__(MODBUS_READ_INPUT_REGISTERS *data__) {
   // Control execution
   if (!__GET_VAR(data__->EN)) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(FALSE));
@@ -370,14 +337,8 @@ static void MODBUS_READ_INPUT_REGISTERS_body__(MODBUS_READ_INPUT_REGISTERS *data
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(TRUE));
   }
   // Initialise TEMP variables
-  bool result = false;
 
-  if (__GET_VAR(data__->READ))
-  {
-    result = modbus_read_input_registers(__GET_VAR(data__->START_ADDRESS), __GET_VAR(data__->SLAVE_ID), __GET_VAR(data__->COUNT), __GET_VAR(data__->TCP), __GET_VAR(data__->RESPONSE).table);
-  }
-
-  __SET_VAR(data__->,SUCCESS,,result);
+  __SET_VAR(data__->,SUCCESS,,0);
 
   goto __end;
 
@@ -389,7 +350,7 @@ __end:
 
 
 
-static void MODBUS_WRITE_SINGLE_COIL_init__(MODBUS_WRITE_SINGLE_COIL *data__, BOOL retain) {
+void MODBUS_WRITE_SINGLE_COIL_init__(MODBUS_WRITE_SINGLE_COIL *data__, BOOL retain) {
   __INIT_VAR(data__->EN,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->ENO,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->WRITE,__BOOL_LITERAL(FALSE),retain)
@@ -401,7 +362,7 @@ static void MODBUS_WRITE_SINGLE_COIL_init__(MODBUS_WRITE_SINGLE_COIL *data__, BO
 }
 
 // Code part
-static void MODBUS_WRITE_SINGLE_COIL_body__(MODBUS_WRITE_SINGLE_COIL *data__) {
+void MODBUS_WRITE_SINGLE_COIL_body__(MODBUS_WRITE_SINGLE_COIL *data__) {
   // Control execution
   if (!__GET_VAR(data__->EN)) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(FALSE));
@@ -411,14 +372,8 @@ static void MODBUS_WRITE_SINGLE_COIL_body__(MODBUS_WRITE_SINGLE_COIL *data__) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(TRUE));
   }
   // Initialise TEMP variables
-  bool result = false;
 
-  if (__GET_VAR(data__->WRITE))
-  {
-    result = modbus_write_single_coil(__GET_VAR(data__->ADDRESS), __GET_VAR(data__->SLAVE_ID), __GET_VAR(data__->NEW_VALUE), __GET_VAR(data__->TCP));
-  }
-
-  __SET_VAR(data__->,SUCCESS,,result);
+  __SET_VAR(data__->,SUCCESS,,0);
 
   goto __end;
 
@@ -430,7 +385,7 @@ __end:
 
 
 
-static void MODBUS_WRITE_SINGLE_REGISTER_init__(MODBUS_WRITE_SINGLE_REGISTER *data__, BOOL retain) {
+void MODBUS_WRITE_SINGLE_REGISTER_init__(MODBUS_WRITE_SINGLE_REGISTER *data__, BOOL retain) {
   __INIT_VAR(data__->EN,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->ENO,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->WRITE,__BOOL_LITERAL(FALSE),retain)
@@ -442,7 +397,7 @@ static void MODBUS_WRITE_SINGLE_REGISTER_init__(MODBUS_WRITE_SINGLE_REGISTER *da
 }
 
 // Code part
-static void MODBUS_WRITE_SINGLE_REGISTER_body__(MODBUS_WRITE_SINGLE_REGISTER *data__) {
+void MODBUS_WRITE_SINGLE_REGISTER_body__(MODBUS_WRITE_SINGLE_REGISTER *data__) {
   // Control execution
   if (!__GET_VAR(data__->EN)) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(FALSE));
@@ -452,14 +407,8 @@ static void MODBUS_WRITE_SINGLE_REGISTER_body__(MODBUS_WRITE_SINGLE_REGISTER *da
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(TRUE));
   }
   // Initialise TEMP variables
-  bool result = false;
 
-  if (__GET_VAR(data__->WRITE))
-  {
-    result = modbus_write_single_register(__GET_VAR(data__->ADDRESS), __GET_VAR(data__->SLAVE_ID), __GET_VAR(data__->NEW_VALUE), __GET_VAR(data__->TCP));
-  }
-
-  __SET_VAR(data__->,SUCCESS,,result);
+  __SET_VAR(data__->,SUCCESS,,0);
 
   goto __end;
 
@@ -471,7 +420,7 @@ __end:
 
 
 
-static void MODBUS_TCP_DISCONNECT_init__(MODBUS_TCP_DISCONNECT *data__, BOOL retain) {
+void MODBUS_TCP_DISCONNECT_init__(MODBUS_TCP_DISCONNECT *data__, BOOL retain) {
   __INIT_VAR(data__->EN,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->ENO,__BOOL_LITERAL(TRUE),retain)
   __INIT_VAR(data__->DISCONNECT,__BOOL_LITERAL(FALSE),retain)
@@ -479,7 +428,7 @@ static void MODBUS_TCP_DISCONNECT_init__(MODBUS_TCP_DISCONNECT *data__, BOOL ret
 }
 
 // Code part
-static void MODBUS_TCP_DISCONNECT_body__(MODBUS_TCP_DISCONNECT *data__) {
+void MODBUS_TCP_DISCONNECT_body__(MODBUS_TCP_DISCONNECT *data__) {
   // Control execution
   if (!__GET_VAR(data__->EN)) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(FALSE));
@@ -489,14 +438,8 @@ static void MODBUS_TCP_DISCONNECT_body__(MODBUS_TCP_DISCONNECT *data__) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(TRUE));
   }
   // Initialise TEMP variables
-  bool result = false;
 
-  if (__GET_VAR(data__->DISCONNECT))
-  {
-    result = modbus_tcp_disconnect();
-  }
-
-  __SET_VAR(data__->,SUCCESS,,result);
+  __SET_VAR(data__->,SUCCESS,,0);
 
   goto __end;
 

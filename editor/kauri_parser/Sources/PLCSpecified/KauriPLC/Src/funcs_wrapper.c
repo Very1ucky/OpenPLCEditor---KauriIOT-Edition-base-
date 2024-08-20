@@ -22,6 +22,12 @@
 #define MODBUS_WRITE_SINGLE_COIL_FUNC ((void **)(START_ADDR))[18]
 #define MODBUS_WRITE_SINGLE_REGISTER_FUNC ((void **)(START_ADDR))[19]
 #define MODBUS_TCP_DISCONNECT_FUNC ((void **)(START_ADDR))[20]
+#define RS485_CONNECT_FUNC ((void **)(START_ADDR))[21]
+#define RS485_SEND_BYTES_FUNC ((void **)(START_ADDR))[22]
+#define RS485_START_RECEIVING_FUNC ((void **)(START_ADDR))[23]
+#define RS485_STOP_RECEIVING_FUNC ((void **)(START_ADDR))[24]
+#define RS485_GET_NEXT_RECEIVED_PACKET_FUNC ((void **)(START_ADDR))[25]
+#define RS485_DISCONNECT_FUNC ((void **)(START_ADDR))[26]
 
 
 int LogMessage(uint8_t level, char* buf, uint32_t size) {
@@ -121,5 +127,35 @@ bool modbus_write_single_register(uint16_t address, uint8_t slave_id, uint16_t n
 
 bool modbus_tcp_disconnect() {
     bool (*temp)() = (bool (*)())(MODBUS_TCP_DISCONNECT_FUNC);
+    return temp();
+}
+
+bool rs485_connect(uint32_t baudrate, uint8_t stopbits, bool enable_terminal_resistors) {
+    bool (*temp)(uint32_t, uint8_t, bool) = (bool (*)(uint32_t, uint8_t, bool))(RS485_CONNECT_FUNC);
+    return temp(baudrate, stopbits, enable_terminal_resistors);
+}
+
+bool rs485_send_bytes(uint8_t *message, uint8_t message_length) {
+    bool (*temp)(uint8_t *, uint8_t) = (bool (*)(uint8_t *, uint8_t))(RS485_SEND_BYTES_FUNC);
+    return temp(message, message_length);
+}
+
+bool rs485_start_receiving(uint8_t receive_packet_size) {
+    bool (*temp)(uint8_t) = (bool (*)(uint8_t))(RS485_START_RECEIVING_FUNC);
+    return temp(receive_packet_size);
+}
+
+bool rs485_stop_receiving() {
+    bool (*temp)() = (bool (*)())(RS485_STOP_RECEIVING_FUNC);
+    return temp();
+}
+
+uint8_t rs485_get_next_received_packet(uint8_t *packet) {
+    uint8_t (*temp)(uint8_t *) = (uint8_t (*)(uint8_t *))(RS485_GET_NEXT_RECEIVED_PACKET_FUNC);
+    return temp(packet);
+}
+
+bool rs485_disconnect() {
+    bool (*temp)() = (bool (*)())(RS485_DISCONNECT_FUNC);
     return temp();
 }

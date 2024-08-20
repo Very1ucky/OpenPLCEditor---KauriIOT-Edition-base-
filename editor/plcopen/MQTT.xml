@@ -15,7 +15,6 @@
 </coordinateInfo>
 </contentHeader>
 <types>
-<dataTypes/>
 <pous>
 <pou name="MQTT_RECEIVE" pouType="functionBlock">
 <interface>
