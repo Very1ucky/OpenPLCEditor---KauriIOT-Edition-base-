@@ -134,6 +134,9 @@
             <xhtml:p><![CDATA[SUCCESS := FALSE;]]></xhtml:p>
           </ST>
         </body>
+        <documentation>
+<xhtml:p><![CDATA[Starts receiving from RS485 ciclically, saves every RECEIVE_PACKET_SIZE bytes into packet. If the starting was successful then SUCCESS is set to TRUE. The packet size can't be more than 128 bytes.]]></xhtml:p>
+</documentation>
       </pou>
       <pou name="RS485_DISCONNECT" pouType="functionBlock">
         <interface>
@@ -157,6 +160,9 @@
             <xhtml:p><![CDATA[SUCCESS := FALSE;]]></xhtml:p>
           </ST>
         </body>
+        <documentation>
+<xhtml:p><![CDATA[Disconnects from RS485 interface. If the disconnection was successfull then SUCCESS is set to TRUE.]]></xhtml:p>
+</documentation>
       </pou>
       <pou name="RS485_GET_NEXT_RECEIVED_PACKET" pouType="functionBlock">
         <interface>
@@ -190,6 +196,9 @@
             <xhtml:p><![CDATA[RECEIVED_PACKET_SIZE := 0;]]></xhtml:p>
           </ST>
         </body>
+        <documentation>
+<xhtml:p><![CDATA[Gets next received packet, returns packet itself and its size. If there isn't any packet then RECEIVED_PACKET_SIZE will be equal to zero.]]></xhtml:p>
+</documentation>
       </pou>
       <pou name="RS485_STOP_RECEIVING" pouType="functionBlock">
         <interface>
@@ -213,6 +222,9 @@
             <xhtml:p><![CDATA[SUCCESS := FALSE;]]></xhtml:p>
           </ST>
         </body>
+        <documentation>
+<xhtml:p><![CDATA[Stops receiving data from RS485 interface. If the stopping was successful then SUCCESS is set to TRUE.]]></xhtml:p>
+</documentation>
       </pou>
 </pous>
 </types>

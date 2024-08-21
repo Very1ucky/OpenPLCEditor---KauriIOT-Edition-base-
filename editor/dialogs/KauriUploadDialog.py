@@ -21,13 +21,20 @@ class KauriUploadDialog(wx.Dialog):
     
     base_folder = paths.AbsParentDir(__file__)
 
-
     def __init__(self, parent, md5, resource_name, ticktime, build_path):
-        """ 
-        Constructor
-        @param parent: Parent wx.Window of dialog for modal
-        @param st_code: Compiled PLC program as ST code.
         """
+    	Initializes the KauriUploadDialog class.
+    	
+    	Parameters:
+    	parent (wx.Window): The parent window of the dialog.
+    	md5 (str): The MD5 hash of the file to be uploaded.
+    	resource_name (str): The name of the resource to be uploaded.
+    	ticktime (int): The tick time of the PLC.
+    	build_path (str): The path to the build directory.
+    	
+    	Returns:
+    	None
+    	"""
         
         self.build_path = build_path
         self.ticktime = ticktime
@@ -48,16 +55,7 @@ class KauriUploadDialog(wx.Dialog):
         # load Hals automatically and initialize the board_type_comboChoices
         self.loadHals()
         board_type_comboChoices = []
-        '''
-        for board in self.hals:
-            board_name = ""
-            if self.hals[board]['version'] == "0":
-                board_name = board + ' [NOT INSTALLED]'
-            else:
-                board_name = board + ' [' + self.hals[board]['version'] + ']'
 
-            board_type_comboChoices.append(board_name)
-        '''
         for board in self.hals.keys():
             board_type_comboChoices.append(board)
             
@@ -250,20 +248,6 @@ class KauriUploadDialog(wx.Dialog):
         fgSizer3.SetFlexibleDirection( wx.BOTH )
         fgSizer3.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 
-        # self.m_staticText14 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"Interface:", wx.DefaultPosition, wx.DefaultSize, 0 )
-        # self.m_staticText14.Wrap( -1 )
-        # self.m_staticText14.SetMinSize( wx.Size( 60,-1 ) )
-
-        # fgSizer3.Add( self.m_staticText14, 0, wx.ALL, 5 )
-
-        # tcp_iface_comboChoices = [ u"Ethernet", u"WiFi" ]
-        # self.tcp_iface_combo = wx.ComboBox( self.m_panel7, wx.ID_ANY, u"Ethernet", wx.DefaultPosition, wx.DefaultSize, tcp_iface_comboChoices, wx.CB_READONLY )
-        # self.tcp_iface_combo.SetSelection( 0 )
-        # self.tcp_iface_combo.SetMinSize( wx.Size( 440,-1 ) )
-        # self.tcp_iface_combo.Bind(wx.EVT_COMBOBOX, self.onUIChange)
-
-        # fgSizer3.Add( self.tcp_iface_combo, 0, wx.ALL|wx.EXPAND, 5 )
-
         self.m_staticText15 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"MAC:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText15.Wrap( -1 )
         self.m_staticText15.SetMinSize( wx.Size( 60,-1 ) )
@@ -325,30 +309,6 @@ class KauriUploadDialog(wx.Dialog):
 
         fgSizer4.Add( self.subnet_txt, 0, wx.ALL, 5 )
 
-        # self.m_staticText21 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"Wi-Fi SSID:", wx.DefaultPosition, wx.DefaultSize, 0 )
-        # self.m_staticText21.Wrap( -1 )
-        # self.m_staticText21.SetMinSize( wx.Size( 60,-1 ) )
-
-        # fgSizer4.Add( self.m_staticText21, 0, wx.ALL, 5 )
-        
-        
-
-        # self.wifi_ssid_txt = wx.TextCtrl( self.m_panel7, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        # self.wifi_ssid_txt.SetMinSize( wx.Size( 180,-1 ) )
-
-        # fgSizer4.Add( self.wifi_ssid_txt, 0, wx.ALL, 5 )
-
-        # self.m_staticText22 = wx.StaticText( self.m_panel7, wx.ID_ANY, u"Password:", wx.DefaultPosition, wx.DefaultSize, 0 )
-        # self.m_staticText22.Wrap( -1 )
-        # self.m_staticText22.SetMinSize( wx.Size( 60,-1 ) )
-
-        # fgSizer4.Add( self.m_staticText22, 0, wx.ALL, 5 )
-
-        # self.wifi_pwd_txt = wx.TextCtrl( self.m_panel7, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_PASSWORD )
-        # self.wifi_pwd_txt.SetMinSize( wx.Size( 180,-1 ) )
-
-        # fgSizer4.Add( self.wifi_pwd_txt, 0, wx.ALL, 5 )
-
         self.m_staticText24 = wx.StaticText( self.m_panel7, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText24.Wrap( -1 )
         fgSizer4.Add( self.m_staticText24, 0, wx.ALL, 5 )
@@ -373,19 +333,6 @@ class KauriUploadDialog(wx.Dialog):
         
 
         gSizer2 = wx.GridSizer( 0, 2, 0, 0 )
-
-        #self.m_button4 = wx.Button( self.m_panel7, wx.ID_ANY, u"Restore Defaults", wx.DefaultPosition, wx.DefaultSize, 0 )
-        #self.m_button4.SetMinSize( wx.Size( 150,30 ) )
-
-        #gSizer2.Add( self.m_button4, 0, wx.ALIGN_CENTER|wx.ALL, 5 )
-
-        #self.m_button5 = wx.Button( self.m_panel7, wx.ID_ANY, u"Save Changes", wx.DefaultPosition, wx.DefaultSize, 0 )
-        #self.m_button5.SetMinSize( wx.Size( 150,30 ) )
-
-        #gSizer2.Add( self.m_button5, 0, wx.ALIGN_CENTER|wx.ALL, 5 )
-
-
-        #bSizer4.Add( gSizer2, 1, wx.EXPAND, 5 )
 
 
         self.m_panel7.SetSizer( bSizer4 )
@@ -419,7 +366,19 @@ class KauriUploadDialog(wx.Dialog):
          self.com_port_combo.SetItems(list(self.com_port_combo_choices.keys()))
 
     def onBoardChange(self, e):
-        # Update board specified data
+        """
+        Handles the event triggered when the board type is changed in the combo box.
+        
+        Updates the serial interface combo box with the available serial interfaces for the selected board.
+        
+        Enables or disables the Modbus serial and TCP checkboxes based on the selected board's capabilities.
+        
+        Parameters:
+            e (wx.Event): The event object triggered by the board type change.
+        
+        Returns:
+            None
+        """
         sel_board = self.board_type_combo.GetValue()
         ser_ports_count = self.hals[sel_board]["serials_count"]
         serial_ints_list = []
@@ -434,7 +393,18 @@ class KauriUploadDialog(wx.Dialog):
 
 
     def onUIChange(self, e=None):
-        
+        """
+        Handles the event triggered when the UI changes in the dialog.
+
+        Updates the state of various UI elements based on the current state of other elements.
+        This includes enabling or disabling certain fields, setting default values, and updating button labels.
+
+        Parameters:
+            e (wx.Event): The event object triggered by the UI change.
+
+        Returns:
+            None
+        """
         # Update Comms
         if (self.check_modbus_serial.GetValue() is False):
             self.serial_iface_combo.Enable(False)
@@ -515,7 +485,16 @@ class KauriUploadDialog(wx.Dialog):
         
 
     def startBuilder(self):
-
+        """
+        Starts the builder process by getting the board type and definitions from the GUI.
+        
+        Creates a new thread to build the PLC program.
+        Waits for the thread to finish.
+        
+        If the debug after transfer checkbox is checked and the build was successful, ends the modal.
+        
+        Saves the settings.
+        """
         # Get platform and source_file from hals
         board_type = self.board_type_combo.GetValue()
         
@@ -542,6 +521,15 @@ class KauriUploadDialog(wx.Dialog):
             self.EndModal(0)
 
     def OnUpload(self, event):
+        """
+        Handles the upload event by disabling the upload button and starting a new thread to run the builder process.
+        
+        Parameters:
+            event (wx.Event): The event that triggered this function call.
+        
+        Returns:
+            None
+        """
         self.upload_button.Enable(False)
         builder_thread = threading.Thread(target=self.startBuilder)
         builder_thread.start()
