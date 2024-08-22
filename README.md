@@ -18,7 +18,7 @@ You can run app from Beremiz.py file.
 
 ## Changes in relation to the OpenPLC Editor
 - Changed the app logo (`brz.ico`, `editor/images/brz.logo`) and startup banner (`editor/images/about_brz_logo.png`).
-- Matiec was divided into two parts. One part, included here, contains platform-independent PLC libraries and functional blocks logic written in C and ST PLC languages (`matiec/lib`). The second part contains the compiled Matiec code for the platform, which needs to be added to the Matiec folder (`iec2c.exe` and `iec2iec.exe` for example (Windows)).
+- Matiec was divided into two parts. One part, included here, contains platform-independent PLC libraries and functional blocks logic written in C and ST PLC languages (`matiec/lib`). The second part contains the compiled Matiec code (matiec compiler from ST IEC-61131 format to C code) for the platform, which needs to be added to the Matiec folder (`iec2c.exe` and `iec2iec.exe` for example (Windows)).
 - Removed Arduino library, libraries to work with P1AM, Sequent Microsystems and Jaguar modules from matiec and `editor/plcopen/definitions.py` due to using different platform.
 - Added MODBUS, RS485, MQTT libraries (see **Adding new functional blocks** section).
 - Removed unsupported examples from the `editor/examples` folder.
@@ -43,7 +43,22 @@ You can run app from Beremiz.py file.
 
 ## Adding new functional blocks
 Different ways to add new functional blocks described [here](https://autonomylogic.com/docs/3-3-adding-new-blocks-to-openplc-editors-library/). Further comments will be given for Manual Approach:
-- To generate .xml, MatIEC lib file and C code files can be used new OpenPLC Editor project with integrated functinal block creation tool. After project building you can extract .xml data from `{build folder}/plc.xml` folder, .st data from `{build folder}/build/plc.st` file and C code data from `{build folder}/build/POUS.h` and `{build folder}/build/POUS.c`.
+- To generate .xml, MatIEC lib file and C code files can be used new OpenPLC Editor project with integrated functinal block creation tool. After project building you can extract .xml data from `{build folder}/plc.xml` file, .st data from `{build folder}/build/plc.st` file and C code data from `{build folder}/build/POUS.h` and `{build folder}/build/POUS.c` (you need to change all functions to static to not have conflicts during compile time).
 - The .st files should be put only into `matiec/lib` folder. The .xml files must be put `editor/plcopen` folder to use library blocks in editor window.
 - The C sourse files should be put into `matiec/lib/C` folder and `editor/kauri_parser/Sources/Common/MatiecBased`. First source location is used to compile program for simulation and debugging program comparing and visualization. Second source location is used to compile program for PLC device (they can be different from first location's sources and use platform specific libraries).
 
+## Supporting new devices
+To add new device support need to do following steps:
+- Write library for new platform that implements specific functions to work with the device periphery (you can see list of them in the `editor/kauri_parser/Sources/README.md` file). It can be shared library for devices with os supporting it or pseudo "shared" library with fixed predefined function addresses (see the `editor/kauri_parser/Sources/PLCSpecified/KauriPLC` folder).
+- Setup toolchain for cross-compiling C language source files for used as PLC platform (bare metal microcontroller, Unix, Windows and etc). If it distributes with editor or stores in fixed location then the inner PATH variable can be changed in the `__init_execute_path` function (`editor/BeremizIDE.py` file).
+- Add new board into `hals.json` file.
+- Write function in `editor/kauri_parser/builder.py` for building generated PLC program source files for the needed platform. It must have the same contract as `_buildKauriPLCBinary` function. Into `editor/kauri_parser/Sources/PLCSpecified/{your board name}` can be added additional make scripts, other source files.
+- Write runtime environment to use generated PLC program. It must include the thread for running PLC initialization function (runs `editor/kauri_parser/Sources/Common/Config.c` `config_init` function) and PLC program logic cyclically (runs `editor/kauri_parser/Sources/Common/Config.c` `config_run` function each `common_ticktime__` interval). Also there should be threads with modbus rtu and tcp to support firmware uploading and debugging. New modbus functional codes that need to be implemented are as follows:
+    - 65 - get debug information
+    - 66 - set debug trace (force variables)
+    - 67 - get debug trace (read variables)
+    - 68 - get debug trace list (read list of variables)
+    - 69 - get current program MD5 
+    - 102 - start firmware downloading (sends before first firmware packet)
+    - 103 - get next firmware packet
+    - 104 - end firmware loading (sends after last firmware packet)
