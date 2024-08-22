@@ -160,8 +160,8 @@ static void RS485_SEND_BYTES_body__(RS485_SEND_BYTES *data__) {
   }
 
   bool success = false;
-  if (__GET_VAR(data__->CONNECT)) {
-    success = rs485_send_bytes(data__->MESSAGE.body, data__->MESSAGE_SIZE);
+  if (__GET_VAR(data__->SEND)) {
+    success = rs485_send_bytes(__GET_VAR(data__->MESSAGE).table, data__->MESSAGE_SIZE);
   }
   // Initialise TEMP variables
 
@@ -196,7 +196,7 @@ static void RS485_START_RECEIVING_body__(RS485_START_RECEIVING *data__) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(TRUE));
   }
   bool success = false;
-  if (__GET_VAR(data__->CONNECT)) {
+  if (__GET_VAR(data__->START)) {
     success = rs485_start_receiving(data__->RECEIVE_PACKET_SIZE);
   }
   // Initialise TEMP variables
@@ -231,7 +231,7 @@ static void RS485_DISCONNECT_body__(RS485_DISCONNECT *data__) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(TRUE));
   }
   bool success = false;
-  if (__GET_VAR(data__->CONNECT)) {
+  if (__GET_VAR(data__->DISCONNECT)) {
     success = rs485_disconnect();
   }
   // Initialise TEMP variables
@@ -271,7 +271,7 @@ static void RS485_GET_NEXT_RECEIVED_PACKET_body__(RS485_GET_NEXT_RECEIVED_PACKET
   }
 
   uint8_t received_packet_size = 0;
-  if (__GET_VAR(data__->CONNECT)) {
+  if (__GET_VAR(data__->GET)) {
     received_packet_size = rs485_get_next_received_packet(data__->RECEIVED_PACKET);
   }
 
@@ -305,7 +305,7 @@ static void RS485_STOP_RECEIVING_body__(RS485_STOP_RECEIVING *data__) {
     __SET_VAR(data__->,ENO,,__BOOL_LITERAL(TRUE));
   }
   bool success = false;
-  if (__GET_VAR(data__->CONNECT)) {
+  if (__GET_VAR(data__->STOP)) {
     success = rs485_stop_receiving();
   }
   // Initialise TEMP variables

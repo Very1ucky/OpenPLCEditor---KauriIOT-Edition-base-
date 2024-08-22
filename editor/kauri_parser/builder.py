@@ -16,6 +16,9 @@ import wx
 class TransferException(Exception):
     pass
 
+class CompilationException(Exception):
+    pass
+
 
 class PlcProgramBuilder:
 
@@ -51,7 +54,7 @@ class PlcProgramBuilder:
     ):
         self.txtCtrl = txtCtrl
         self.resource_name = resource_name
-        self.build_failed = False
+        self.build_or_transfer_failed = False
 
         try:
             self._setupSrcFiles(defs, resource_name, build_path)
@@ -64,65 +67,72 @@ class PlcProgramBuilder:
             self.outputIntoCompileWindow("\n")
         except ConnectionError as e:
             self.outputIntoCompileWindow(f"Connection error ({e})\n")
-            self.build_failed = True
+            self.build_or_transfer_failed = True
         except TransferException as e:
             self.outputIntoCompileWindow(f"Transfer error ({e})\n")
-            self.build_failed = True
+            self.build_or_transfer_failed = True
+        except CompilationException as e:
+            self.outputIntoCompileWindow(f"Compilation error ({e})\n")
+            self.build_or_transfer_failed = True
         except Exception as e:
-            self.outputIntoCompileWindow(f"Compilation or transfer error ({e})\n")
-            self.build_failed = True
+            self.outputIntoCompileWindow(f"Unhandled error ({e})\n")
+            self.build_or_transfer_failed = True
 
         self._saveLogs(os.path.join(self.base_folder, "last_build_logs.txt"))
 
     def _buildBinary(self, board_type) -> str:
         self.outputIntoCompileWindow("Start to build project\n")
         if board_type == "Kauri PLC":
-            make_path = os.path.join(
-                self.base_folder,
-                "Sources",
-                "PLCSpecified",
-                "KauriPLC",
-                "STM32Make.make",
-            )
-
-            makefile_data = ""
-            with open(make_path, "r") as makefile:
-                makefile_data = makefile.readlines()
-
-            new_makefile_data = []
-            for line in makefile_data:
-                if line.startswith("C_SOURCES = "):
-                    line = f"C_SOURCES = ../../Common/Generated/{self.resource_name}.c \\\n"
-                new_makefile_data.append(line)
-
-            with open(make_path, "w") as makefile:
-                makefile.writelines(new_makefile_data)
-
-            files_path = os.path.join(
-                self.base_folder, "Sources", "PLCSpecified", "KauriPLC"
-            )
-            build_command = f"make -C {files_path} -f {make_path}"
-            try:
-                res = subprocess.check_output(
-                    build_command, stderr=subprocess.STDOUT, shell=True, env=os.environ
-                )
-            except subprocess.CalledProcessError as err:
-                self.outputIntoCompileWindow("Build failed\n")
-                self.outputIntoCompileWindow(f"Build output: \n{err.stdout}")
-                self.build_failed = True
-                return None
-            else:
-                res = re.findall(r"B\s+?([.\d]+)\%", res.decode())
-                self.outputIntoCompileWindow("Project successfully build\n")
-                self.outputIntoCompileWindow(f"RAM used: {res[0]}%\n")
-                self.outputIntoCompileWindow(f"FLASH used: {res[1]}%\n")
-
-            return os.path.join(files_path, "build", "PLC_Logic.bin")
+            res = self._buildKauriPLCBinary()
+            self.outputIntoCompileWindow("Project successfully build\n")
+            self.outputIntoCompileWindow(f"RAM used: {res[1]}%\n")
+            self.outputIntoCompileWindow(f"ROM used: {res[2]}%\n")
+            return res[0]
         else:
-            self.outputIntoCompileWindow(
+            raise CompilationException(
                 "Failed to build project (specified platform doesn't exist)"
             )
-            return None
+    
+    def _buildKauriPLCBinary(self) -> tuple:
+        rom_used_persent = 0
+        ram_used_persent = 0
+        make_path = os.path.join(
+            self.base_folder,
+            "Sources",
+            "PLCSpecified",
+            "KauriPLC",
+            "STM32Make.make",
+        )
+
+        makefile_data = ""
+        with open(make_path, "r") as makefile:
+            makefile_data = makefile.readlines()
+
+        new_makefile_data = []
+        for line in makefile_data:
+            if line.startswith("C_SOURCES = "):
+                line = f"C_SOURCES = ../../Common/Generated/{self.resource_name}.c \\\n"
+            new_makefile_data.append(line)
+
+        with open(make_path, "w") as makefile:
+            makefile.writelines(new_makefile_data)
+
+        files_path = os.path.join(
+            self.base_folder, "Sources", "PLCSpecified", "KauriPLC"
+        )
+        build_command = f"make -C {files_path} -f {make_path}"
+        try:
+            res = subprocess.check_output(
+                build_command, stderr=subprocess.STDOUT, shell=True, env=os.environ
+            )
+        except subprocess.CalledProcessError as err:
+            raise CompilationException(f"Build output: \n{err.stdout}")
+        else:
+            res = re.findall(r"B\s+?([.\d]+)\%", res.decode())
+            ram_used_persent = float(res[0])
+            rom_used_persent = float(res[1])
+
+        return (os.path.join(files_path, "build", "PLC_Logic.bin"), ram_used_persent, rom_used_persent)
 
     def _sendFw(self, serial_transfer_en, port, fw_path):
 
